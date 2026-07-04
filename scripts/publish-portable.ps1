@@ -1,7 +1,8 @@
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
-    [string]$Version = ""
+    [string]$Version = "",
+    [string]$Repository = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,6 +13,10 @@ if ([string]::IsNullOrWhiteSpace($Runtime) -or $Runtime -notmatch '^[A-Za-z0-9][
 
 if (-not [string]::IsNullOrWhiteSpace($Version) -and $Version -notmatch '^[0-9]+(\.[0-9]+){1,3}([\-+][A-Za-z0-9.-]+)?$') {
     throw "Version must be numeric semantic version text, for example 1.2.3: $Version"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($Repository) -and $Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+    throw "Repository must be owner/name, for example owner/FileShelf: $Repository"
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -45,6 +50,7 @@ $publishArgs = @(
 
 if (-not [string]::IsNullOrWhiteSpace($Version)) {
     $publishArgs += "/p:Version=$Version"
+    $publishArgs += "/p:InformationalVersion=$Version"
 }
 
 dotnet @publishArgs
@@ -59,5 +65,15 @@ if (Test-Path -LiteralPath $statePath) {
 
 Get-ChildItem -LiteralPath $resolvedOutputPath -Filter "*.pdb" -File |
     Remove-Item -Force
+
+$appInfoPath = Join-Path $resolvedOutputPath "FileShelf.app.json"
+$appInfo = [ordered]@{
+    version = $Version
+    tag = $(if ([string]::IsNullOrWhiteSpace($Version)) { "" } else { "v$Version" })
+    repository = $Repository
+    latestReleaseApiUrl = $(if ([string]::IsNullOrWhiteSpace($Repository)) { "" } else { "https://api.github.com/repos/$Repository/releases/latest" })
+    latestReleasePageUrl = $(if ([string]::IsNullOrWhiteSpace($Repository)) { "" } else { "https://github.com/$Repository/releases/latest" })
+}
+$appInfo | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $appInfoPath -Encoding UTF8
 
 Write-Host "Portable build ready: $resolvedOutputPath"

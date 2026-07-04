@@ -19,15 +19,6 @@ public sealed class SettingsService
         "RightBottom"
     };
 
-    private static readonly HashSet<string> ValidTriggerModes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Manual",
-        "AnyDrag",
-        "AltDrag",
-        "DockZone",
-        "ScreenEdge"
-    };
-
     private static readonly HashSet<string> ValidLanguages = new(StringComparer.OrdinalIgnoreCase)
     {
         UiText.English,
@@ -121,14 +112,15 @@ public sealed class SettingsService
     private void Normalize(AppSettings settings)
     {
         var changed = false;
-        if (string.IsNullOrWhiteSpace(settings.TriggerMode))
-        {
-            settings.TriggerMode = settings.EnableDragTrigger ? "AltDrag" : "Manual";
-            changed = true;
-        }
-        else if (!ValidTriggerModes.Contains(settings.TriggerMode))
+        if (!string.Equals(settings.TriggerMode, "Manual", StringComparison.OrdinalIgnoreCase))
         {
             settings.TriggerMode = "Manual";
+            changed = true;
+        }
+
+        if (settings.EnableDragTrigger)
+        {
+            settings.EnableDragTrigger = false;
             changed = true;
         }
 
@@ -173,7 +165,8 @@ public sealed class SettingsService
         return new AppSettings
         {
             DesignProfile = "YoinkEdge",
-            TriggerMode = "ScreenEdge",
+            EnableDragTrigger = false,
+            TriggerMode = "Manual",
             ShelfWidth = 335,
             ShelfHeight = 540,
             ShelfDockMode = "RightCenter"

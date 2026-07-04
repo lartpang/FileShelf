@@ -9,6 +9,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Resources\FileShelfIconNotion.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <RepositoryUrl>https://github.com/lartpang/FileShelf</RepositoryUrl>
   </PropertyGroup>
 
 </Project>

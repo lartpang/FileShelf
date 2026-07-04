@@ -1,9 +1,6 @@
 using System.Windows;
-using System.Windows.Interop;
 using FileShelf.Win.Models;
 using FileShelf.Win.Services;
-using Forms = System.Windows.Forms;
-using DrawingPoint = System.Drawing.Point;
 using WpfPoint = System.Windows.Point;
 
 namespace FileShelf.Win;
@@ -14,17 +11,12 @@ public partial class App : System.Windows.Application
     private bool _hasSingleInstanceLock;
     private MainWindow? _mainWindow;
     private TrayService? _trayService;
-    private HotkeyService? _hotkeyService;
-    private MouseHookService? _mouseHookService;
     private LoggerService? _logger;
     private SettingsService? _settingsService;
     private ShelfStateService? _shelfStateService;
     private AppSettings? _settings;
-    private bool _hotkeyRegistered;
-    private string _mouseHookMode = "Manual";
-    private string _mouseHookDockMode = "RightCenter";
-    private string _mouseHookIgnoredProcesses = string.Empty;
-    private double _mouseHookShelfHeight;
+    private SettingsWindow? _settingsWindow;
+    private AboutWindow? _aboutWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -57,7 +49,7 @@ public partial class App : System.Windows.Application
         _logger.Info("Application starting");
         _shelfStateService = new ShelfStateService(_logger);
 
-        _mainWindow = new MainWindow(_settings, _logger, _shelfStateService, AddIgnoredProcess);
+        _mainWindow = new MainWindow(_settings, _logger, _shelfStateService);
         _mainWindow.ItemCountChanged += (_, count) => UpdateTrayText(count);
         _trayService = new TrayService(
             toggleShelf: ToggleShelf,
@@ -68,24 +60,12 @@ public partial class App : System.Windows.Application
         _trayService.Initialize();
         UpdateTrayText(_mainWindow.ItemCount);
 
-        _mainWindow.SourceInitialized += (_, _) =>
-        {
-            _hotkeyService = new HotkeyService(_mainWindow);
-            _hotkeyService.HotkeyPressed += (_, _) => ShowShelf();
-            _hotkeyRegistered = _hotkeyService.Register();
-            _logger.Info(_hotkeyRegistered ? "Global hotkey registered" : "Global hotkey unavailable");
-        };
-
-        _ = new WindowInteropHelper(_mainWindow).EnsureHandle();
-        ConfigureMouseHook();
-        _mainWindow.Hide();
+        _mainWindow.ShowIconAtDefault();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         SaveWindowSettings();
-        _mouseHookService?.Dispose();
-        _hotkeyService?.Dispose();
         _trayService?.Dispose();
         _logger?.Info("Application exited");
         if (_hasSingleInstanceLock)
@@ -105,28 +85,7 @@ public partial class App : System.Windows.Application
         }
 
         _mainWindow.CancelHideAnimation();
-        PositionShelf(triggerPosition);
-        var wasShowActivated = _mainWindow.ShowActivated;
-        var shouldAnimate = !_mainWindow.IsVisible;
-        _mainWindow.ShowActivated = activate;
-
-        if (!_mainWindow.IsVisible)
-        {
-            _mainWindow.Show();
-        }
-
-        _mainWindow.WindowState = WindowState.Normal;
-        _mainWindow.ShowActivated = wasShowActivated;
-        if (activate)
-        {
-            _mainWindow.Activate();
-        }
-
-        _mainWindow.Topmost = true;
-        if (shouldAnimate)
-        {
-            _mainWindow.PlayShowAnimation();
-        }
+        _mainWindow.ShowPanel(activate, triggerPosition);
     }
 
     private void ToggleShelf()
@@ -136,48 +95,13 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (_mainWindow.IsVisible && !_mainWindow.IsHidingToTray)
+        if (_mainWindow.IsPanelOpen && !_mainWindow.IsHidingToTray)
         {
             _mainWindow.HideToTray();
             return;
         }
 
         ShowShelf();
-    }
-
-    private void PositionShelf(WpfPoint? triggerPosition = null)
-    {
-        if (_mainWindow is null || _settings is null)
-        {
-            return;
-        }
-
-        var area = GetWorkArea(triggerPosition);
-        var isRight = _settings.ShelfDockMode.StartsWith("Right", StringComparison.OrdinalIgnoreCase);
-        _mainWindow.Left = isRight
-            ? area.Right - _mainWindow.Width + 10
-            : area.Left - 10;
-
-        _mainWindow.Top = _settings.ShelfDockMode switch
-        {
-            "LeftTop" or "RightTop" => area.Top + 24,
-            "LeftBottom" or "RightBottom" => area.Bottom - _mainWindow.Height - 24,
-            _ => area.Top + (area.Height - _mainWindow.Height) / 2
-        };
-    }
-
-    private static Rect GetWorkArea(WpfPoint? triggerPosition)
-    {
-        if (triggerPosition is null)
-        {
-            return SystemParameters.WorkArea;
-        }
-
-        var screen = Forms.Screen.FromPoint(new DrawingPoint(
-            (int)Math.Round(triggerPosition.Value.X),
-            (int)Math.Round(triggerPosition.Value.Y)));
-        var area = screen.WorkingArea;
-        return new Rect(area.Left, area.Top, area.Width, area.Height);
     }
 
     private void ShowSettings()
@@ -187,21 +111,26 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
         CaptureCurrentWindowSize();
         var settingsWindow = new SettingsWindow(
             _settings,
-            _settingsService,
-            _hotkeyRegistered,
-            () => _mainWindow.ClearShelf())
+            _settingsService)
         {
-            Owner = _mainWindow.IsVisible ? _mainWindow : null
+            ShowInTaskbar = false
         };
+        _settingsWindow = settingsWindow;
+        settingsWindow.Closed += (_, _) => _settingsWindow = null;
         if (settingsWindow.ShowDialog() == true)
         {
             _mainWindow.ApplySettings(_settings);
             _mainWindow.SaveShelfState();
             UpdateTrayText(_mainWindow.ItemCount);
-            ConfigureMouseHook();
         }
     }
 
@@ -212,10 +141,18 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (_aboutWindow is not null)
+        {
+            _aboutWindow.Activate();
+            return;
+        }
+
         var aboutWindow = new AboutWindow(_settings)
         {
-            Owner = _mainWindow?.IsVisible == true ? _mainWindow : null
+            ShowInTaskbar = false
         };
+        _aboutWindow = aboutWindow;
+        aboutWindow.Closed += (_, _) => _aboutWindow = null;
         aboutWindow.ShowDialog();
     }
 
@@ -251,62 +188,6 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void ConfigureMouseHook()
-    {
-        if (_settings is not null && _settings.TriggerMode != "Manual")
-        {
-            if (_mouseHookService is not null &&
-                _mouseHookMode == _settings.TriggerMode &&
-                _mouseHookDockMode == _settings.ShelfDockMode &&
-                Math.Abs(_mouseHookShelfHeight - _settings.ShelfHeight) < 1 &&
-                string.Equals(_mouseHookIgnoredProcesses, _settings.IgnoredProcessNames, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            _mouseHookService?.Dispose();
-            _mouseHookService = new MouseHookService(
-                _settings.TriggerMode,
-                _settings.ShelfDockMode,
-                _settings.ShelfHeight,
-                _settings.IgnoredProcessNames);
-            _mouseHookMode = _settings.TriggerMode;
-            _mouseHookDockMode = _settings.ShelfDockMode;
-            _mouseHookShelfHeight = _settings.ShelfHeight;
-            _mouseHookIgnoredProcesses = _settings.IgnoredProcessNames;
-            _mouseHookService.DragTriggerDetected += (_, args) => Dispatcher.Invoke(() =>
-            {
-                _mainWindow?.SetLastTriggerSourceProcess(args.SourceProcessName);
-                ShowShelf(activate: false, triggerPosition: args.Position);
-            });
-
-            if (!_mouseHookService.Start())
-            {
-                _logger?.Warning("Mouse trigger hook unavailable");
-                _mouseHookService.Dispose();
-                _mouseHookService = null;
-                _mouseHookMode = "Manual";
-                _mouseHookDockMode = "RightCenter";
-                _mouseHookShelfHeight = 0;
-                _mouseHookIgnoredProcesses = string.Empty;
-            }
-            else
-            {
-                _logger?.Info($"Mouse trigger hook enabled; mode={_settings.TriggerMode}");
-            }
-
-            return;
-        }
-
-        _mouseHookService?.Dispose();
-        _mouseHookService = null;
-        _mouseHookMode = "Manual";
-        _mouseHookDockMode = "RightCenter";
-        _mouseHookShelfHeight = 0;
-        _mouseHookIgnoredProcesses = string.Empty;
-        _logger?.Info("Mouse trigger hook disabled");
-    }
-
     private void CaptureCurrentWindowSize()
     {
         if (_mainWindow is null || _settings is null)
@@ -314,37 +195,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (!_mainWindow.IsPanelOpen)
+        {
+            return;
+        }
+
         _settings.ShelfWidth = _mainWindow.Width;
         _settings.ShelfHeight = _mainWindow.Height;
-    }
-
-    private void AddIgnoredProcess(string processName)
-    {
-        if (_settings is null || _settingsService is null || string.IsNullOrWhiteSpace(processName))
-        {
-            return;
-        }
-
-        var names = _settings.IgnoredProcessNames
-            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
-        if (names.Any(name => string.Equals(NormalizeProcessName(name), NormalizeProcessName(processName), StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        names.Add(NormalizeProcessName(processName));
-        _settings.IgnoredProcessNames = string.Join(", ", names);
-        _settingsService.Save(_settings);
-        ConfigureMouseHook();
-        _logger?.Info($"Ignored app added; process={NormalizeProcessName(processName)}");
-    }
-
-    private static string NormalizeProcessName(string processName)
-    {
-        var trimmed = processName.Trim();
-        return trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? trimmed[..^4]
-            : trimmed;
     }
 }

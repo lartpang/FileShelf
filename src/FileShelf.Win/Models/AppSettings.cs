@@ -10,10 +10,6 @@ public sealed class AppSettings
 
     public string TriggerMode { get; set; } = string.Empty;
 
-    public string IgnoredProcessNames { get; set; } = string.Empty;
-
-    public string HotkeyText { get; set; } = "Ctrl + Alt + Space";
-
     public double ShelfWidth { get; set; } = 335;
 
     public double ShelfHeight { get; set; } = 540;

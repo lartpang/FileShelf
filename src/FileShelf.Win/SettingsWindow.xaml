@@ -3,23 +3,27 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="FileShelf (Portable)"
         Width="460"
-        Height="500"
-        MinHeight="420"
-        ResizeMode="CanResize"
-        WindowStartupLocation="CenterOwner"
+        Height="356"
+        MinHeight="340"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterScreen"
         Background="#FFF5F8FA">
     <Window.Resources>
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="Background" Value="#FFFFFFFF" />
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#FFD8E3E8" />
             <Setter Property="Foreground" Value="#FF222629" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="ButtonSurface"
                                 Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
@@ -42,18 +46,140 @@
             <Setter Property="Background" Value="#FFFFFFFF" />
             <Setter Property="CornerRadius" Value="8" />
         </Style>
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#FF73776F" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="SettingsComboBox" TargetType="ComboBox">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#FF202326" />
+            <Setter Property="Background" Value="#FFF5F8FA" />
+            <Setter Property="BorderBrush" Value="#FFD8E3E8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Surface"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="#FFD8E3E8"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="8,0">
+                                            <Grid>
+                                                <ContentPresenter x:Name="ContentSite"
+                                                                  HorizontalAlignment="Left"
+                                                                  VerticalAlignment="Center"
+                                                                  Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentStringFormat="{Binding SelectionBoxItemStringFormat, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+                                                <TextBlock Text="&#xE70D;"
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="10"
+                                                           Foreground="#FF587281"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Surface" Property="Background" Value="#FFFFFFFF" />
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="Surface" Property="Background" Value="#FFEAF4FB" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Fade">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="180"
+                                        Margin="0,4,0,0"
+                                        Background="#FFFFFFFF"
+                                        BorderBrush="#FFD8E3E8"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10"
+                                                          ShadowDepth="2"
+                                                          Direction="270"
+                                                          Color="#332A5872"
+                                                          Opacity="0.45" />
+                                    </Border.Effect>
+                                    <ScrollViewer Padding="3"
+                                                  SnapsToDevicePixels="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Foreground" Value="#FF202326" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemSurface"
+                                Background="Transparent"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#FFEAF4FB" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#FFDFF0FA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Foreground" Value="#FF3E4448" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Cursor" Value="IBeam" />
         </Style>
         <Style x:Key="ValueEditor" TargetType="TextBox">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Height" Value="24" />
-            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+        <Style x:Key="PathBrowseButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Background" Value="#FFE9EEF1" />
         </Style>
     </Window.Resources>
 
@@ -62,7 +188,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
@@ -82,12 +208,10 @@
                             VerticalAlignment="Center">
                     <TextBlock x:Name="LanguageLabelTextBlock"
                                Margin="0,0,8,0"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
+                               Style="{StaticResource LabelText}" />
                     <ComboBox x:Name="LanguageComboBox"
+                              Style="{StaticResource SettingsComboBox}"
                               Width="96"
-                              Height="26"
                               SelectionChanged="LanguageComboBox_SelectionChanged">
                         <ComboBoxItem Tag="en" />
                         <ComboBoxItem Tag="zh-CN" />
@@ -101,82 +225,23 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="30" />
-                        <RowDefinition Height="30" />
-                        <RowDefinition Height="30" />
-                        <RowDefinition Height="30" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="86" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock x:Name="TriggerLabelTextBlock"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="TriggerModeComboBox"
-                              Grid.Column="1"
-                              Height="26"
-                              SelectionChanged="TriggerModeComboBox_SelectionChanged">
-                        <ComboBoxItem Tag="Manual" />
-                        <ComboBoxItem Tag="AnyDrag" />
-                        <ComboBoxItem Tag="AltDrag" />
-                        <ComboBoxItem Tag="DockZone" />
-                        <ComboBoxItem Tag="ScreenEdge" />
-                    </ComboBox>
-
-                    <TextBlock x:Name="PositionLabelTextBlock"
-                               Grid.Row="1"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <ComboBox x:Name="DockModeComboBox"
-                              Grid.Row="1"
-                              Grid.Column="1"
-                              Height="26">
-                        <ComboBoxItem Tag="LeftTop" />
-                        <ComboBoxItem Tag="LeftCenter" />
-                        <ComboBoxItem Tag="LeftBottom" />
-                        <ComboBoxItem Tag="RightTop" />
-                        <ComboBoxItem Tag="RightCenter" />
-                        <ComboBoxItem Tag="RightBottom" />
-                    </ComboBox>
-
-                    <TextBlock x:Name="IgnoredAppsLabelTextBlock"
-                               Grid.Row="3"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <TextBox x:Name="IgnoredAppsTextBox"
-                             Grid.Row="3"
-                             Grid.Column="1"
-                             Height="24"
-                             Padding="5,1"
-                             FontSize="11" />
-
                     <TextBlock x:Name="SizeLabelTextBlock"
-                               Grid.Row="2"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
+                               Style="{StaticResource LabelText}" />
                     <ComboBox x:Name="ShelfSizeComboBox"
-                              Grid.Row="2"
+                              Style="{StaticResource SettingsComboBox}"
                               Grid.Column="1"
-                              Height="26">
+                              Height="28">
                         <ComboBoxItem Tag="Small" />
                         <ComboBoxItem Tag="Medium" />
                         <ComboBoxItem Tag="Large" />
                         <ComboBoxItem Tag="Custom" />
                     </ComboBox>
-
-                    <TextBlock x:Name="TriggerHintTextBlock"
-                               Grid.Row="4"
-                               Grid.ColumnSpan="2"
-                               Margin="0,8,0,0"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               TextWrapping="Wrap" />
                 </Grid>
             </Border>
 
@@ -185,79 +250,72 @@
                     Style="{StaticResource SectionSurface}">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="28" />
-                        <RowDefinition Height="28" />
-                        <RowDefinition Height="28" />
-                        <RowDefinition Height="28" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="74" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="36" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock x:Name="HotkeyLabelTextBlock"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <TextBlock x:Name="HotkeyTextBlock"
-                               Grid.Column="1"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" />
-
-                    <TextBlock x:Name="StatusLabelTextBlock"
-                               Grid.Row="1"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <TextBlock x:Name="HotkeyStatusTextBlock"
-                               Grid.Row="1"
-                               Grid.Column="1"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
-
                     <TextBlock x:Name="DataLabelTextBlock"
-                               Grid.Row="2"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <Grid Grid.Row="2" Grid.Column="1">
+                               Style="{StaticResource LabelText}" />
+                    <Grid Grid.Column="1"
+                          MinHeight="38">
+                        <Border Background="#FFF5F8FA"
+                                BorderBrush="#FFD8E3E8"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="7,5">
                         <TextBlock x:Name="DataPathTextBlock"
                                    Style="{StaticResource ValueText}"
                                    MouseLeftButtonDown="DataPathTextBlock_MouseLeftButtonDown" />
+                        </Border>
                         <TextBox x:Name="DataPathTextBox"
                                  Style="{StaticResource ValueEditor}"
-                                 LostFocus="DataPathTextBox_LostFocus"
-                                 KeyDown="PathTextBox_KeyDown" />
+                                 LostFocus="DataPathTextBox_LostFocus" />
                     </Grid>
+                    <Button x:Name="DataBrowseButton"
+                            Grid.Column="2"
+                            Style="{StaticResource PathBrowseButton}"
+                            Content="&#xE8B7;"
+                            Click="DataBrowseButton_Click" />
 
                     <TextBlock x:Name="LogLabelTextBlock"
-                               Grid.Row="3"
-                               FontSize="11"
-                               Foreground="#FF73776F"
-                               VerticalAlignment="Center" />
-                    <Grid Grid.Row="3" Grid.Column="1">
+                               Grid.Row="1"
+                               Margin="0,8,0,0"
+                               Style="{StaticResource LabelText}" />
+                    <Grid Grid.Row="1"
+                          Grid.Column="1"
+                          MinHeight="38"
+                          Margin="0,8,0,0">
+                        <Border Background="#FFF5F8FA"
+                                BorderBrush="#FFD8E3E8"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="7,5">
                         <TextBlock x:Name="LogPathTextBlock"
                                    Style="{StaticResource ValueText}"
                                    MouseLeftButtonDown="LogPathTextBlock_MouseLeftButtonDown" />
+                        </Border>
                         <TextBox x:Name="LogPathTextBox"
                                  Style="{StaticResource ValueEditor}"
-                                 LostFocus="LogPathTextBox_LostFocus"
-                                 KeyDown="PathTextBox_KeyDown" />
+                                 LostFocus="LogPathTextBox_LostFocus" />
                     </Grid>
+                    <Button x:Name="LogBrowseButton"
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            Margin="0,8,0,0"
+                            Style="{StaticResource PathBrowseButton}"
+                            Content="&#xE8A5;"
+                            Click="LogBrowseButton_Click" />
                 </Grid>
             </Border>
 
             <DockPanel Grid.Row="3"
-                       Margin="0,12,0,0"
+                       Margin="0,10,0,0"
                        LastChildFill="False">
-                <Button x:Name="ClearShelfButton"
-                        DockPanel.Dock="Left"
-                        Style="{StaticResource ActionButton}"
-                        Background="#FFE9EEF1"
-                        Click="ClearShelf_Click" />
                 <Button x:Name="SaveButton"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ActionButton}"

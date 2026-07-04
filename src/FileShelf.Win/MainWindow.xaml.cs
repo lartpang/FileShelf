@@ -22,8 +22,12 @@ namespace FileShelf.Win;
 
 public partial class MainWindow : Window
 {
+    private const double IconWindowSize = 64;
+    private const double IconSurfaceSize = 52;
+    private const double PanelMinimumWidth = 220;
+    private const double PanelMinimumHeight = 320;
+
     private readonly DragDropService _dragDropService = new();
-    private readonly Action<string> _ignoreProcess;
     private readonly LoggerService _logger;
     private readonly List<RemovedShelfBatch> _removedShelfBatches = new();
     private readonly ShelfStateService _shelfStateService;
@@ -32,25 +36,32 @@ public partial class MainWindow : Window
     private bool _dragAllFromCount;
     private bool _isHidingToTray;
     private bool _isDragActive;
+    private bool _isPanelOpen;
+    private bool _isIconMouseDown;
+    private bool _isDraggingIcon;
+    private bool _isDraggingOut;
+    private bool _hasIconPosition;
     private int _dropNoticeToken;
     private int _hideAnimationToken;
-    private string? _lastTriggerSourceProcess;
+    private double _iconLeft;
+    private double _iconTop;
+    private double _iconDragStartLeft;
+    private double _iconDragStartTop;
     private WpfPoint _dragStartPoint;
+    private WpfPoint _iconDragStartScreenPoint;
     private ShelfItem? _dragItem;
 
     public MainWindow(
         AppSettings settings,
         LoggerService logger,
-        ShelfStateService shelfStateService,
-        Action<string> ignoreProcess)
+        ShelfStateService shelfStateService)
     {
         InitializeComponent();
         _settings = settings;
         _logger = logger;
         _shelfStateService = shelfStateService;
-        _ignoreProcess = ignoreProcess;
-        Width = settings.ShelfWidth;
-        Height = settings.ShelfHeight;
+        Width = IconWindowSize;
+        Height = IconWindowSize;
         DataContext = this;
         Items.CollectionChanged += (_, _) => UpdateEmptyState();
         LoadShelfState();
@@ -66,10 +77,53 @@ public partial class MainWindow : Window
 
     public bool IsHidingToTray => _isHidingToTray;
 
+    public bool IsPanelOpen => _isPanelOpen;
+
+    public void ShowIconAtDefault()
+    {
+        if (!_hasIconPosition)
+        {
+            var area = GetWorkArea(null);
+            SetIconPosition(area.Right - IconWindowSize - 8, area.Top + (area.Height - IconWindowSize) / 2, area);
+        }
+
+        SetIconMode();
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        Topmost = true;
+    }
+
+    public void ShowPanel(bool activate = true, WpfPoint? triggerPosition = null)
+    {
+        CancelHideAnimation();
+        var anchor = triggerPosition ?? new WpfPoint(_iconLeft + IconWindowSize / 2, _iconTop + IconWindowSize / 2);
+        var area = GetWorkArea(anchor);
+        SetPanelMode(area);
+        PositionPanel(anchor, area);
+
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        WindowState = WindowState.Normal;
+        Topmost = true;
+        if (activate)
+        {
+            Activate();
+        }
+
+        PlayShowAnimation();
+    }
+
     public void PlayShowAnimation()
     {
         CancelHideAnimation();
-        var isLeft = _settings.ShelfDockMode.StartsWith("Left", StringComparison.OrdinalIgnoreCase);
+        var area = GetWorkArea(new WpfPoint(Left + Width / 2, Top + Height / 2));
+        var isLeft = Left < area.Left + area.Width / 2;
         var startOffset = isLeft ? -18 : 18;
         ShelfSlideTransform.X = startOffset;
         Opacity = 0.88;
@@ -101,14 +155,14 @@ public partial class MainWindow : Window
 
     public void HideToTray()
     {
-        if (!IsVisible || _isHidingToTray)
+        if (!IsVisible || _isHidingToTray || !_isPanelOpen)
         {
             return;
         }
 
         _isHidingToTray = true;
         var animationToken = ++_hideAnimationToken;
-        var isLeft = _settings.ShelfDockMode.StartsWith("Left", StringComparison.OrdinalIgnoreCase);
+        var isLeft = _iconLeft < Left;
         var endOffset = isLeft ? -18 : 18;
         var duration = TimeSpan.FromMilliseconds(110);
         var easing = new CubicEase { EasingMode = EasingMode.EaseIn };
@@ -120,7 +174,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            Hide();
+            SetIconMode();
             ShelfSlideTransform.BeginAnimation(TranslateTransform.XProperty, null);
             BeginAnimation(OpacityProperty, null);
             ShelfSlideTransform.X = 0;
@@ -134,19 +188,129 @@ public partial class MainWindow : Window
             new DoubleAnimation(0.88, duration) { EasingFunction = easing });
     }
 
+    private void SetIconMode()
+    {
+        _isPanelOpen = false;
+        MinWidth = IconWindowSize;
+        MinHeight = IconWindowSize;
+        ResizeMode = ResizeMode.NoResize;
+        ShelfShell.Visibility = Visibility.Collapsed;
+        IconShell.Visibility = Visibility.Visible;
+        Width = IconWindowSize;
+        Height = IconWindowSize;
+        if (!_hasIconPosition)
+        {
+            var area = GetWorkArea(null);
+            SetIconPosition(area.Right - IconWindowSize - 8, area.Top + (area.Height - IconWindowSize) / 2, area);
+        }
+        else
+        {
+            Left = _iconLeft;
+            Top = _iconTop;
+        }
+
+        ApplyDropVisualState(false, force: true);
+    }
+
+    private void SetPanelMode(Rect area)
+    {
+        _isPanelOpen = true;
+        MinWidth = PanelMinimumWidth;
+        MinHeight = PanelMinimumHeight;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
+        IconShell.Visibility = Visibility.Collapsed;
+        ShelfShell.Visibility = Visibility.Visible;
+        Width = Math.Min(Math.Max(_settings.ShelfWidth, PanelMinimumWidth), Math.Max(PanelMinimumWidth, area.Width - 16));
+        Height = Math.Min(Math.Max(_settings.ShelfHeight, PanelMinimumHeight), Math.Max(PanelMinimumHeight, area.Height - 16));
+    }
+
+    private void PositionPanel(WpfPoint anchor, Rect area)
+    {
+        var openToLeft = anchor.X >= area.Left + area.Width / 2;
+        var left = openToLeft
+            ? anchor.X - Width + IconSurfaceSize / 2
+            : anchor.X - IconSurfaceSize / 2;
+        var top = anchor.Y - Height / 2;
+
+        Left = Clamp(left, area.Left + 8, area.Right - Width - 8);
+        Top = Clamp(top, area.Top + 8, area.Bottom - Height - 8);
+        var dockMode = openToLeft ? "RightCenter" : "LeftCenter";
+        ApplyDockVisual(dockMode);
+        CollapseButton.Content = GetCollapseGlyph(dockMode);
+    }
+
+    private void SetIconPosition(double left, double top, Rect? workArea = null)
+    {
+        var area = workArea ?? GetWorkArea(new WpfPoint(left + IconWindowSize / 2, top + IconWindowSize / 2));
+        _iconLeft = Clamp(left, area.Left, area.Right - IconWindowSize);
+        _iconTop = Clamp(top, area.Top, area.Bottom - IconWindowSize);
+        _hasIconPosition = true;
+        if (!_isPanelOpen)
+        {
+            Left = _iconLeft;
+            Top = _iconTop;
+        }
+    }
+
+    private Rect GetWorkArea(WpfPoint? position)
+    {
+        if (position is null)
+        {
+            return SystemParameters.WorkArea;
+        }
+
+        var devicePosition = ToDeviceScreenPoint(position.Value);
+        var screen = Forms.Screen.FromPoint(new System.Drawing.Point(
+            (int)Math.Round(devicePosition.X),
+            (int)Math.Round(devicePosition.Y)));
+        var area = screen.WorkingArea;
+        var topLeft = ToDipScreenPoint(new WpfPoint(area.Left, area.Top));
+        var bottomRight = ToDipScreenPoint(new WpfPoint(area.Right, area.Bottom));
+        return new Rect(topLeft, bottomRight);
+    }
+
+    private WpfPoint ToDipScreenPoint(WpfPoint screenPoint)
+    {
+        var source = PresentationSource.FromVisual(this);
+        return source?.CompositionTarget is null
+            ? screenPoint
+            : source.CompositionTarget.TransformFromDevice.Transform(screenPoint);
+    }
+
+    private WpfPoint ToDeviceScreenPoint(WpfPoint screenPoint)
+    {
+        var source = PresentationSource.FromVisual(this);
+        return source?.CompositionTarget is null
+            ? screenPoint
+            : source.CompositionTarget.TransformToDevice.Transform(screenPoint);
+    }
+
+    private static double Clamp(double value, double minimum, double maximum)
+    {
+        return maximum < minimum ? minimum : Math.Clamp(value, minimum, maximum);
+    }
+
     public void ApplySettings(AppSettings settings)
     {
         _settings = settings;
-        Width = settings.ShelfWidth;
-        Height = settings.ShelfHeight;
+        if (_isPanelOpen)
+        {
+            var area = GetWorkArea(new WpfPoint(Left + Width / 2, Top + Height / 2));
+            SetPanelMode(area);
+            PositionPanel(new WpfPoint(_iconLeft + IconWindowSize / 2, _iconTop + IconWindowSize / 2), area);
+        }
+        else
+        {
+            SetIconMode();
+        }
+
         Title = UiText.Get(_settings.LanguageCode, "PortableTitle");
-        ApplyDockVisual(settings.ShelfDockMode);
         AddButton.FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets");
         CollapseButton.FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets");
         AddButton.Content = "\uE710";
         AddButton.ToolTip = UiText.Get(_settings.LanguageCode, "AddToShelf");
-        CollapseButton.Content = GetCollapseGlyph(settings.ShelfDockMode);
-        CollapseButton.ToolTip = UiText.Get(_settings.LanguageCode, "CollapseToTray");
+        CollapseButton.ToolTip = UiText.Get(_settings.LanguageCode, "CollapseToIcon");
+        IconShell.ToolTip = UiText.Get(_settings.LanguageCode, "IconTooltip");
         CountDragHandle.ToolTip = UiText.Get(_settings.LanguageCode, "DragAllFromCount");
         EmptyTitleTextBlock.Text = UiText.Get(_settings.LanguageCode, "DropFiles");
         EmptyHintTextBlock.Text = UiText.Get(_settings.LanguageCode, "PathOnly");
@@ -185,11 +349,6 @@ public partial class MainWindow : Window
         PersistShelf();
     }
 
-    public void SetLastTriggerSourceProcess(string? processName)
-    {
-        _lastTriggerSourceProcess = string.IsNullOrWhiteSpace(processName) ? null : processName;
-    }
-
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (_allowClose)
@@ -199,6 +358,81 @@ public partial class MainWindow : Window
 
         e.Cancel = true;
         HideToTray();
+    }
+
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        Topmost = true;
+        ShowIconAtDefault();
+    }
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        if (_isPanelOpen && !_isDraggingOut)
+        {
+            HideToTray();
+        }
+    }
+
+    private void IconShell_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            _isIconMouseDown = false;
+            _isDraggingIcon = false;
+            IconShell.ReleaseMouseCapture();
+            ShowPanel();
+            e.Handled = true;
+            return;
+        }
+
+        _isIconMouseDown = true;
+        _isDraggingIcon = false;
+        _iconDragStartScreenPoint = ToDipScreenPoint(PointToScreen(e.GetPosition(this)));
+        _iconDragStartLeft = _iconLeft;
+        _iconDragStartTop = _iconTop;
+        IconShell.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void IconShell_MouseMove(object sender, WpfMouseEventArgs e)
+    {
+        if (!_isIconMouseDown || e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        var screenPosition = ToDipScreenPoint(PointToScreen(e.GetPosition(this)));
+        var deltaX = screenPosition.X - _iconDragStartScreenPoint.X;
+        var deltaY = screenPosition.Y - _iconDragStartScreenPoint.Y;
+        if (!_isDraggingIcon &&
+            Math.Abs(deltaX) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(deltaY) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        _isDraggingIcon = true;
+        SetIconPosition(_iconDragStartLeft + deltaX, _iconDragStartTop + deltaY);
+        e.Handled = true;
+    }
+
+    private void IconShell_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isIconMouseDown && !_isDraggingIcon)
+        {
+            return;
+        }
+
+        _isIconMouseDown = false;
+        _isDraggingIcon = false;
+        IconShell.ReleaseMouseCapture();
+        e.Handled = true;
+    }
+
+    private void IconShell_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
     }
 
     private void TitleBar_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -325,22 +559,6 @@ public partial class MainWindow : Window
             menu.Items.Add(restoreItem);
         }
 
-        if (!string.IsNullOrWhiteSpace(_lastTriggerSourceProcess) && !IsIgnoredProcess(_lastTriggerSourceProcess))
-        {
-            menu.Items.Add(new WpfSeparator());
-            var processName = _lastTriggerSourceProcess;
-            var ignoreItem = new WpfMenuItem
-            {
-                Header = UiText.FormatIgnoreApp(_settings.LanguageCode, processName)
-            };
-            ignoreItem.Click += (_, _) =>
-            {
-                _ignoreProcess(processName);
-                _lastTriggerSourceProcess = null;
-            };
-            menu.Items.Add(ignoreItem);
-        }
-
         if (Items.Any(item => !item.IsPinned))
         {
             menu.Items.Add(new WpfSeparator());
@@ -353,21 +571,6 @@ public partial class MainWindow : Window
         }
 
         menu.IsOpen = true;
-    }
-
-    private bool IsIgnoredProcess(string processName)
-    {
-        return _settings.IgnoredProcessNames
-            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Any(name => string.Equals(NormalizeProcessName(name), NormalizeProcessName(processName), StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string NormalizeProcessName(string processName)
-    {
-        var trimmed = processName.Trim();
-        return trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
-            ? trimmed[..^4]
-            : trimmed;
     }
 
     private void CollapseButton_Click(object sender, RoutedEventArgs e)
@@ -384,57 +587,6 @@ public partial class MainWindow : Window
 
         RemoveShelfItem(item);
         e.Handled = true;
-    }
-
-    private void ShelfList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (TryCollapseFromShortcut(e))
-        {
-            return;
-        }
-
-        if (TrySelectAllFromShortcut(e))
-        {
-            return;
-        }
-
-        if (TryStackSelectedFromShortcut(e))
-        {
-            return;
-        }
-
-        if (TryRestoreFromShortcut(e))
-        {
-            return;
-        }
-
-        if (e.Key is not (Key.Delete or Key.Back))
-        {
-            return;
-        }
-
-        RemoveSelectedShelfItems();
-        e.Handled = true;
-    }
-
-    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (TryCollapseFromShortcut(e))
-        {
-            return;
-        }
-
-        if (TrySelectAllFromShortcut(e))
-        {
-            return;
-        }
-
-        if (TryStackSelectedFromShortcut(e))
-        {
-            return;
-        }
-
-        TryRestoreFromShortcut(e);
     }
 
     private void ShelfList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -682,7 +834,17 @@ public partial class MainWindow : Window
         }
 
         var data = _dragDropService.CreateFileDropData(paths);
-        var effect = System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        _isDraggingOut = true;
+        var effect = System.Windows.DragDropEffects.None;
+        try
+        {
+            effect = System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+        }
+        finally
+        {
+            _isDraggingOut = false;
+        }
+
         if (effect != System.Windows.DragDropEffects.None)
         {
             RemoveDraggedOutItems(dragItems);
@@ -690,6 +852,10 @@ public partial class MainWindow : Window
 
         UpdateEmptyState();
         _logger.Info($"Drag-out completed; itemCount={paths.Length}; effect={effect}");
+        if (!IsActive && _isPanelOpen)
+        {
+            HideToTray();
+        }
     }
 
     private ShelfItem[] GetDragItems()
@@ -724,6 +890,21 @@ public partial class MainWindow : Window
         }
 
         _isDragActive = isActive;
+        if (!_isPanelOpen)
+        {
+            IconShell.Width = isActive ? 58 : IconSurfaceSize;
+            IconShell.Height = isActive ? 58 : IconSurfaceSize;
+            IconShell.Background = new SolidColorBrush(
+                isActive
+                    ? System.Windows.Media.Color.FromRgb(0x27, 0x8A, 0xF2)
+                    : System.Windows.Media.Color.FromRgb(0x72, 0xB8, 0xEA));
+            IconGlyphText.FontSize = isActive ? 31 : 28;
+            IconGlyphText.Margin = isActive ? new Thickness(0, -10, 0, 0) : new Thickness(0);
+            IconDropHint.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+            IconDropHintTextBlock.Text = UiText.Get(_settings.LanguageCode, "ReleaseToStageShort");
+            return;
+        }
+
         DropTargetBorder.Background = new SolidColorBrush(
             isActive
                 ? System.Windows.Media.Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF)
@@ -762,6 +943,14 @@ public partial class MainWindow : Window
     {
         var token = ++_dropNoticeToken;
         var text = UiText.Get(_settings.LanguageCode, textKey);
+        if (!_isPanelOpen)
+        {
+            IconDropHint.Visibility = Visibility.Visible;
+            IconDropHintTextBlock.Text = text;
+            _ = ResetDropNoticeLater(token);
+            return;
+        }
+
         if (Items.Count > 0)
         {
             ContinueDropHint.Visibility = Visibility.Visible;
@@ -881,24 +1070,6 @@ public partial class MainWindow : Window
         }
 
         _logger.Info($"Shelf item removed; totalCount={Items.Count}");
-        PersistShelf();
-    }
-
-    private void RemoveSelectedShelfItems()
-    {
-        var selectedItems = ShelfList.SelectedItems.OfType<ShelfItem>().ToArray();
-        if (selectedItems.Length == 0)
-        {
-            return;
-        }
-
-        var removed = RemoveShelfItemsAsBatch(selectedItems);
-        if (removed == 0)
-        {
-            return;
-        }
-
-        _logger.Info($"Selected shelf items removed; removedCount={removed}; totalCount={Items.Count}");
         PersistShelf();
     }
 
@@ -1194,54 +1365,6 @@ public partial class MainWindow : Window
         _logger.Info($"Removed shelf items restored; restoredCount={restored}; totalCount={Items.Count}");
         PersistShelf();
         UpdateEmptyState();
-    }
-
-    private bool TryRestoreFromShortcut(System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key != Key.Z || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-        {
-            return false;
-        }
-
-        RestoreRecentlyRemoved();
-        e.Handled = true;
-        return true;
-    }
-
-    private bool TryCollapseFromShortcut(System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key != Key.Escape)
-        {
-            return false;
-        }
-
-        HideToTray();
-        e.Handled = true;
-        return true;
-    }
-
-    private bool TrySelectAllFromShortcut(System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key != Key.A || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Items.Count == 0)
-        {
-            return false;
-        }
-
-        ShelfList.SelectAll();
-        e.Handled = true;
-        return true;
-    }
-
-    private bool TryStackSelectedFromShortcut(System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key != Key.G || !Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || ShelfList.SelectedItems.Count < 2)
-        {
-            return false;
-        }
-
-        StackSelectedShelfItems();
-        e.Handled = true;
-        return true;
     }
 
     private void UpdateEmptyState()

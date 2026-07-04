@@ -5,12 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="FileShelf (Portable)"
-        Width="335"
-        Height="540"
-        MinWidth="220"
-        MinHeight="320"
+        Width="64"
+        Height="64"
+        MinWidth="1"
+        MinHeight="1"
         WindowStyle="None"
-        ResizeMode="CanResizeWithGrip"
+        ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
         AllowsTransparency="True"
@@ -20,8 +20,9 @@
         DragOver="Window_DragOver"
         DragLeave="Window_DragLeave"
         Drop="Window_Drop"
-        KeyDown="Window_KeyDown"
-        Closing="Window_Closing">
+        Closing="Window_Closing"
+        Loaded="Window_Loaded"
+        Deactivated="Window_Deactivated">
     <Window.Resources>
         <Style x:Key="ShelfButton" TargetType="Button">
             <Setter Property="Height" Value="24" />
@@ -64,9 +65,61 @@
         </Style>
     </Window.Resources>
 
+    <Grid>
+    <Border x:Name="IconShell"
+            Width="52"
+            Height="52"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="#D472B8EA"
+            BorderBrush="#88FFFFFF"
+            BorderThickness="1"
+            CornerRadius="13"
+            Cursor="Hand"
+            ToolTip="FileShelf"
+            MouseLeftButtonDown="IconShell_MouseLeftButtonDown"
+            MouseLeftButtonUp="IconShell_MouseLeftButtonUp"
+            MouseMove="IconShell_MouseMove"
+            MouseRightButtonDown="IconShell_MouseRightButtonDown">
+        <Border.Effect>
+            <DropShadowEffect x:Name="IconShadow"
+                              BlurRadius="14"
+                              ShadowDepth="3"
+                              Direction="180"
+                              Color="#802A5872"
+                              Opacity="0.5" />
+        </Border.Effect>
+        <Grid>
+            <TextBlock x:Name="IconGlyphText"
+                       Text="&#xE8B7;"
+                       FontFamily="Segoe MDL2 Assets"
+                       FontSize="28"
+                       Foreground="#FFFFFFFF"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+            <Border x:Name="IconDropHint"
+                    Height="16"
+                    Width="46"
+                    Background="#33FFFFFF"
+                    CornerRadius="7"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,5"
+                    Visibility="Collapsed">
+                <TextBlock x:Name="IconDropHintTextBlock"
+                           FontSize="8.5"
+                           Foreground="#FFFFFFFF"
+                           TextAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" />
+            </Border>
+        </Grid>
+    </Border>
+
     <Border x:Name="ShelfShell"
             Margin="10"
             CornerRadius="14"
+            Visibility="Collapsed"
             Background="#D472B8EA"
             BorderBrush="#66FFFFFF"
             BorderThickness="1"
@@ -156,7 +209,6 @@
                                  BorderThickness="0"
                                  Background="Transparent"
                                  Padding="7"
-                                 KeyDown="ShelfList_KeyDown"
                                  SelectionChanged="ShelfList_SelectionChanged"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.CanContentScroll="True"
@@ -443,4 +495,5 @@
             </DockPanel>
         </Grid>
     </Border>
+    </Grid>
 </Window>

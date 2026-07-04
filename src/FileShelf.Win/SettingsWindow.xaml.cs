@@ -1,9 +1,11 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using FileShelf.Win.Models;
 using FileShelf.Win.Services;
-using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Forms = System.Windows.Forms;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using WpfComboBox = System.Windows.Controls.ComboBox;
 using WpfTextBox = System.Windows.Controls.TextBox;
 
@@ -13,8 +15,6 @@ public partial class SettingsWindow : Window
 {
     private readonly AppSettings _settings;
     private readonly SettingsService _settingsService;
-    private readonly bool _hotkeyRegistered;
-    private readonly Action _clearShelf;
     private bool _isInitializing = true;
     private static readonly ShelfSizePreset[] SizePresets =
     {
@@ -25,26 +25,15 @@ public partial class SettingsWindow : Window
 
     public SettingsWindow(
         AppSettings settings,
-        SettingsService settingsService,
-        bool hotkeyRegistered,
-        Action clearShelf)
+        SettingsService settingsService)
     {
         InitializeComponent();
 
         _settings = settings;
         _settingsService = settingsService;
-        _hotkeyRegistered = hotkeyRegistered;
-        _clearShelf = clearShelf;
 
         SelectLanguage(_settings.LanguageCode);
-        SelectComboBoxTag(TriggerModeComboBox, _settings.TriggerMode);
-        SelectComboBoxTag(DockModeComboBox, _settings.ShelfDockMode);
         SelectShelfSize();
-        IgnoredAppsTextBox.Text = _settings.IgnoredProcessNames;
-        HotkeyTextBlock.Text = _settings.HotkeyText;
-        HotkeyStatusTextBlock.Foreground = _hotkeyRegistered
-            ? System.Windows.Media.Brushes.ForestGreen
-            : System.Windows.Media.Brushes.Firebrick;
         UpdatePathFields();
         ApplyLanguage();
 
@@ -65,28 +54,11 @@ public partial class SettingsWindow : Window
         ApplyLanguage();
     }
 
-    private void TriggerModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isInitializing)
-        {
-            return;
-        }
-
-        UpdateTriggerHint();
-    }
-
-    private void ClearShelf_Click(object sender, RoutedEventArgs e)
-    {
-        _clearShelf();
-    }
-
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        _settings.TriggerMode = GetSelectedTag(TriggerModeComboBox, "Manual");
-        _settings.EnableDragTrigger = _settings.TriggerMode != "Manual";
-        _settings.ShelfDockMode = GetSelectedTag(DockModeComboBox, "RightCenter");
+        _settings.TriggerMode = "Manual";
+        _settings.EnableDragTrigger = false;
         ApplyShelfSizePreset();
-        _settings.IgnoredProcessNames = IgnoredAppsTextBox.Text.Trim();
         if (!SaveSettings())
         {
             return;
@@ -116,26 +88,51 @@ public partial class SettingsWindow : Window
         CommitPathEdit(LogPathTextBlock, LogPathTextBox, isDataPath: false);
     }
 
-    private void PathTextBox_KeyDown(object sender, WpfKeyEventArgs e)
+    private void DataBrowseButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not WpfTextBox textBox)
+        using var dialog = new Forms.FolderBrowserDialog
+        {
+            Description = UiText.Get(LanguageCode, "BrowseDataPath"),
+            UseDescriptionForTitle = true,
+            SelectedPath = Directory.Exists(PortablePaths.DataDirectory)
+                ? PortablePaths.DataDirectory
+                : AppContext.BaseDirectory
+        };
+
+        if (dialog.ShowDialog() != Forms.DialogResult.OK || string.IsNullOrWhiteSpace(dialog.SelectedPath))
         {
             return;
         }
 
-        if (e.Key == Key.Enter)
+        _settings.DataDirectoryPath = dialog.SelectedPath;
+        PortablePaths.Configure(_settings);
+        SaveSettings();
+        UpdatePathFields();
+    }
+
+    private void LogBrowseButton_Click(object sender, RoutedEventArgs e)
+    {
+        var currentLogPath = PortablePaths.LogPath;
+        var currentLogDirectory = Path.GetDirectoryName(currentLogPath);
+        var dialog = new SaveFileDialog
         {
-            MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
+            Title = UiText.Get(LanguageCode, "BrowseLogPath"),
+            Filter = "Log files (*.log)|*.log|All files (*.*)|*.*",
+            FileName = Path.GetFileName(currentLogPath),
+            InitialDirectory = !string.IsNullOrWhiteSpace(currentLogDirectory) && Directory.Exists(currentLogDirectory)
+                ? currentLogDirectory
+                : AppContext.BaseDirectory
+        };
+
+        if (dialog.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dialog.FileName))
         {
-            UpdatePathFields();
-            textBox.Visibility = Visibility.Collapsed;
-            DataPathTextBlock.Visibility = Visibility.Visible;
-            LogPathTextBlock.Visibility = Visibility.Visible;
-            e.Handled = true;
+            return;
         }
+
+        _settings.LogFilePath = dialog.FileName;
+        PortablePaths.Configure(_settings);
+        SaveSettings();
+        UpdatePathFields();
     }
 
     private void BeginPathEdit(TextBlock display, WpfTextBox editor)
@@ -191,41 +188,17 @@ public partial class SettingsWindow : Window
         LanguageLabelTextBlock.Text = UiText.Get(LanguageCode, "Language");
         SetComboBoxItemText(UiText.English, UiText.Get(LanguageCode, "English"));
         SetComboBoxItemText(UiText.Chinese, UiText.Get(LanguageCode, "Chinese"));
-        TriggerLabelTextBlock.Text = UiText.Get(LanguageCode, "Trigger");
-        PositionLabelTextBlock.Text = UiText.Get(LanguageCode, "Position");
         SizeLabelTextBlock.Text = UiText.Get(LanguageCode, "Size");
-        IgnoredAppsLabelTextBlock.Text = UiText.Get(LanguageCode, "IgnoredApps");
-        UpdateTriggerHint();
-        IgnoredAppsTextBox.ToolTip = UiText.Get(LanguageCode, "IgnoredAppsHint");
-        SetComboBoxItemText(TriggerModeComboBox, "Manual", UiText.Get(LanguageCode, "TriggerManual"));
-        SetComboBoxItemText(TriggerModeComboBox, "AnyDrag", UiText.Get(LanguageCode, "TriggerAnyDrag"));
-        SetComboBoxItemText(TriggerModeComboBox, "AltDrag", UiText.Get(LanguageCode, "TriggerAltDrag"));
-        SetComboBoxItemText(TriggerModeComboBox, "DockZone", UiText.Get(LanguageCode, "TriggerDockZone"));
-        SetComboBoxItemText(TriggerModeComboBox, "ScreenEdge", UiText.Get(LanguageCode, "TriggerScreenEdge"));
-        SetComboBoxItemText(DockModeComboBox, "LeftTop", UiText.Get(LanguageCode, "LeftTop"));
-        SetComboBoxItemText(DockModeComboBox, "LeftCenter", UiText.Get(LanguageCode, "LeftCenter"));
-        SetComboBoxItemText(DockModeComboBox, "LeftBottom", UiText.Get(LanguageCode, "LeftBottom"));
-        SetComboBoxItemText(DockModeComboBox, "RightTop", UiText.Get(LanguageCode, "RightTop"));
-        SetComboBoxItemText(DockModeComboBox, "RightCenter", UiText.Get(LanguageCode, "RightCenter"));
-        SetComboBoxItemText(DockModeComboBox, "RightBottom", UiText.Get(LanguageCode, "RightBottom"));
         SetComboBoxItemText(ShelfSizeComboBox, "Small", UiText.Get(LanguageCode, "SizeSmall"));
         SetComboBoxItemText(ShelfSizeComboBox, "Medium", UiText.Get(LanguageCode, "SizeMedium"));
         SetComboBoxItemText(ShelfSizeComboBox, "Large", UiText.Get(LanguageCode, "SizeLarge"));
         SetComboBoxItemText(ShelfSizeComboBox, "Custom", UiText.Get(LanguageCode, "SizeCustom"));
-        HotkeyLabelTextBlock.Text = UiText.Get(LanguageCode, "Hotkey");
-        StatusLabelTextBlock.Text = UiText.Get(LanguageCode, "Status");
-        HotkeyStatusTextBlock.Text = UiText.Get(LanguageCode, _hotkeyRegistered ? "Registered" : "Unavailable");
         DataLabelTextBlock.Text = UiText.Get(LanguageCode, "Data");
         LogLabelTextBlock.Text = UiText.Get(LanguageCode, "Log");
-        ClearShelfButton.Content = UiText.Get(LanguageCode, "ClearUnpinned");
+        DataBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseDataPath");
+        LogBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseLogPath");
         CancelButton.Content = UiText.Get(LanguageCode, "Cancel");
         SaveButton.Content = UiText.Get(LanguageCode, "Save");
-    }
-
-    private void UpdateTriggerHint()
-    {
-        var triggerMode = GetSelectedTag(TriggerModeComboBox, _settings.TriggerMode);
-        TriggerHintTextBlock.Text = UiText.Get(LanguageCode, $"TriggerHint{triggerMode}");
     }
 
     private void UpdatePathFields()
