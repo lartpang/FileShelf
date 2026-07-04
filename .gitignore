@@ -1,0 +1,41 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# Portable runtime state
+FileShelfData/
+**/FileShelfData/
+*.log
+
+# User and IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.agents
+reference/
+
+# Local environment checks and temporary files
+.tmp-csharp-env-check/
+*.tmp
+*.temp
+
+# Test and coverage output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+coverage.cobertura.xml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

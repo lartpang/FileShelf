@@ -1,0 +1,446 @@
+<Window x:Class="FileShelf.Win.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="FileShelf (Portable)"
+        Width="335"
+        Height="540"
+        MinWidth="220"
+        MinHeight="320"
+        WindowStyle="None"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Topmost="True"
+        AllowsTransparency="True"
+        Background="Transparent"
+        AllowDrop="True"
+        DragEnter="Window_DragEnter"
+        DragOver="Window_DragOver"
+        DragLeave="Window_DragLeave"
+        Drop="Window_Drop"
+        KeyDown="Window_KeyDown"
+        Closing="Window_Closing">
+    <Window.Resources>
+        <Style x:Key="ShelfButton" TargetType="Button">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#FF0F3550" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonSurface"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#55FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#77FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ItemActionButton" TargetType="Button" BasedOn="{StaticResource ShelfButton}">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="MinWidth" Value="18" />
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="ShelfShell"
+            Margin="10"
+            CornerRadius="14"
+            Background="#D472B8EA"
+            BorderBrush="#66FFFFFF"
+            BorderThickness="1"
+            Padding="8">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="ShelfSlideTransform" />
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect x:Name="ShelfShadow"
+                              BlurRadius="18"
+                              ShadowDepth="4"
+                              Direction="270"
+                              Color="#802A5872"
+                              Opacity="0.55" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="18" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="26" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    CornerRadius="8"
+                    Background="#11FFFFFF"
+                    PreviewMouseLeftButtonDown="TitleBar_PreviewMouseLeftButtonDown">
+                <Grid Margin="8,0">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <Ellipse Width="4" Height="4" Fill="#77FFFFFF" />
+                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#77FFFFFF" />
+                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#77FFFFFF" />
+                    </StackPanel>
+                    <Border x:Name="CountDragHandle"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            MaxWidth="190"
+                            Height="18"
+                            Padding="3,0,7,0"
+                            Background="#44FFFFFF"
+                            CornerRadius="9"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="CountText_MouseLeftButtonDown"
+                            MouseLeftButtonUp="CountText_MouseLeftButtonUp"
+                            MouseMove="CountText_MouseMove">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CountIconSurface"
+                                    Width="14"
+                                    Height="14"
+                                    Background="#55FFFFFF"
+                                    CornerRadius="7"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="CountIconText"
+                                           Text="&#xE7C3;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="8.5"
+                                           Foreground="#FF0F5D86"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock x:Name="CountText"
+                                       Margin="5,0,0,0"
+                                       FontSize="9.5"
+                                       Foreground="#F2FFFFFF"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1"
+                  Margin="0,6,0,0"
+                  MouseRightButtonUp="ShelfBackground_MouseRightButtonUp">
+                <Border x:Name="DropTargetBorder"
+                        Background="#33FFFFFF"
+                        CornerRadius="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ListBox x:Name="ShelfList"
+                                 ItemsSource="{Binding Items}"
+                                 SelectionMode="Extended"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="7"
+                                 KeyDown="ShelfList_KeyDown"
+                                 SelectionChanged="ShelfList_SelectionChanged"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.ScrollUnit="Pixel">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,7" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="ItemSurface"
+                                        MinHeight="54"
+                                        Padding="7"
+                                        Background="#DDF4FBFF"
+                                        CornerRadius="10"
+                                        MouseLeftButtonDown="FileItem_MouseLeftButtonDown"
+                                        MouseMove="FileItem_MouseMove"
+                                        MouseRightButtonUp="FileItem_MouseRightButtonUp">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="22" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Width="34"
+                                              Height="34">
+                                            <Border x:Name="GroupLayerBack"
+                                                    Width="25"
+                                                    Height="25"
+                                                    Margin="7,2,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="#77FFFFFF"
+                                                    CornerRadius="7"
+                                                    Visibility="Collapsed" />
+                                            <Border x:Name="GroupLayerMid"
+                                                    Width="27"
+                                                    Height="27"
+                                                    Margin="4,4,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="#AAFFFFFF"
+                                                    CornerRadius="8"
+                                                    Visibility="Collapsed" />
+                                            <Border x:Name="BadgeSurface"
+                                                    Width="30"
+                                                    Height="30"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="#FFFFFFFF"
+                                                    CornerRadius="8"
+                                                    Visibility="{Binding BadgeVisibility}">
+                                                <TextBlock x:Name="BadgeText"
+                                                           Text="{Binding Badge}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="9"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#FF1C6B94"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Border>
+                                            <Border x:Name="IconSurface"
+                                                    Width="30"
+                                                    Height="30"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="#FFFFFFFF"
+                                                    CornerRadius="8"
+                                                    Visibility="{Binding IconVisibility}">
+                                                <Image Source="{Binding IconImage}"
+                                                       Width="22"
+                                                       Height="22"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Stretch="Uniform" />
+                                            </Border>
+                                        </Grid>
+                                        <StackPanel x:Name="ItemTextPanel"
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Margin="4,0,6,0">
+                                            <TextBlock x:Name="ItemNameText"
+                                                       Text="{Binding Name}"
+                                                       FontSize="10"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FF173244"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock x:Name="ItemPathText"
+                                                       Text="{Binding PathSummary}"
+                                                       Margin="0,1,0,0"
+                                                       FontSize="8.5"
+                                                       Foreground="#FF587281"
+                                                       ToolTip="{Binding FullPathToolTip}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock x:Name="MissingTextBlock"
+                                                       Text="{Binding MissingText}"
+                                                       Margin="0,1,0,0"
+                                                       FontSize="9"
+                                                       Foreground="#FFB3261E"
+                                                       Visibility="{Binding MissingVisibility}" />
+                                        </StackPanel>
+                                        <TextBlock x:Name="PinStatusText"
+                                                   Grid.Column="2"
+                                                   Text="&#xE72E;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12"
+                                                   Foreground="#884B6A7A"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip="{Binding PinToolTip}"
+                                                   Visibility="Collapsed" />
+                                        <StackPanel x:Name="ActionPanel"
+                                                    Grid.Column="2"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Opacity="0.68"
+                                                    Visibility="Visible">
+                                            <UniformGrid Rows="3"
+                                                         HorizontalAlignment="Right">
+                                                <Button x:Name="PinItemButton"
+                                                        Style="{StaticResource ItemActionButton}"
+                                                        Content="&#xE718;"
+                                                        ToolTip="{Binding PinToolTip}"
+                                                        Click="PinItemButton_Click" />
+                                                <Button Style="{StaticResource ItemActionButton}"
+                                                        Content="&#xE8A7;"
+                                                        ToolTip="{Binding RevealToolTip}"
+                                                        Margin="0,2,0,0"
+                                                        Click="RevealItemButton_Click" />
+                                                <Button Style="{StaticResource ItemActionButton}"
+                                                        Content="&#xE74D;"
+                                                        ToolTip="{Binding RemoveToolTip}"
+                                                        Margin="0,2,0,0"
+                                                        Click="RemoveItemButton_Click" />
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#EAF2FCFF" />
+                                        <Setter TargetName="GroupLayerBack" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="GroupLayerMid" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="BadgeSurface" Property="Background" Value="#FF2C739E" />
+                                        <Setter TargetName="BadgeText" Property="Foreground" Value="#FFFFFFFF" />
+                                        <Setter TargetName="IconSurface" Property="Background" Value="#FFFFFFFF" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Exists}" Value="False">
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#DCEBF1F4" />
+                                        <Setter TargetName="ItemNameText" Property="Foreground" Value="#FF607784" />
+                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#FF8798A1" />
+                                        <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.55" />
+                                        <Setter TargetName="IconSurface" Property="Opacity" Value="0.55" />
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Exists}" Value="True" />
+                                            <Condition Binding="{Binding HasMissingPaths}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#F4FFF8EA" />
+                                        <Setter TargetName="MissingTextBlock" Property="Foreground" Value="#FF9B5B00" />
+                                        <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.78" />
+                                        <Setter TargetName="IconSurface" Property="Opacity" Value="0.78" />
+                                    </MultiDataTrigger>
+                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#EEF9FDFF" />
+                                        <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
+                                        <Setter TargetName="PinStatusText" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FF278AF2" />
+                                        <Setter TargetName="BadgeSurface" Property="Background" Value="#FFFFFFFF" />
+                                        <Setter TargetName="BadgeText" Property="Foreground" Value="#FF1C6B94" />
+                                        <Setter TargetName="IconSurface" Property="Background" Value="#FFFFFFFF" />
+                                        <Setter TargetName="ItemNameText" Property="Foreground" Value="#FFFFFFFF" />
+                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#DDEAF6FF" />
+                                        <Setter TargetName="MissingTextBlock" Property="Foreground" Value="#FFFFE2E0" />
+                                        <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
+                                        <Setter TargetName="PinStatusText" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="PinItemButton" Property="Background" Value="#44FFFFFF" />
+                                        <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                        <Setter TargetName="PinItemButton" Property="Content" Value="&#xE77A;" />
+                                        <Setter TargetName="PinItemButton" Property="Background" Value="#FF2C739E" />
+                                        <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Border x:Name="ContinueDropHint"
+                                Grid.Row="1"
+                                Margin="7,0,7,7"
+                                Height="30"
+                                Background="#22FFFFFF"
+                                CornerRadius="9"
+                                Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="&#xE710;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="11"
+                                           Foreground="#DDEDF8FF"
+                                           VerticalAlignment="Center" />
+                                <TextBlock x:Name="ContinueDropHintTextBlock"
+                                           Margin="5,0,0,0"
+                                           FontSize="10"
+                                           Foreground="#DDEDF8FF"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <StackPanel x:Name="EmptyState"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <Border x:Name="EmptyIconSurface"
+                            Width="64"
+                            Height="64"
+                            Background="#66FFFFFF"
+                            CornerRadius="18">
+                        <TextBlock x:Name="EmptyIconText"
+                                   Text="&#xE896;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="34"
+                                   Foreground="#FF2C739E" />
+                    </Border>
+                    <TextBlock x:Name="EmptyTitleTextBlock"
+                               Margin="0,12,0,0"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#FFFFFFFF"
+                               HorizontalAlignment="Center" />
+                    <TextBlock x:Name="EmptyHintTextBlock"
+                               Margin="0,5,0,0"
+                               FontSize="10"
+                               Foreground="#E8F8FCFF"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               MaxWidth="180" />
+                </StackPanel>
+            </Grid>
+
+            <DockPanel Grid.Row="2"
+                       LastChildFill="False"
+                       Margin="4,7,4,0">
+                <Button x:Name="AddButton"
+                        DockPanel.Dock="Left"
+                        Width="26"
+                        Style="{StaticResource ShelfButton}"
+                        Padding="0"
+                        Click="AddButton_Click" />
+                <Button x:Name="CollapseButton"
+                        DockPanel.Dock="Right"
+                        Width="26"
+                        Style="{StaticResource ShelfButton}"
+                        Padding="0"
+                        Click="CollapseButton_Click" />
+            </DockPanel>
+        </Grid>
+    </Border>
+</Window>

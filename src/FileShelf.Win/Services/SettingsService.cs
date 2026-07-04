@@ -1,0 +1,182 @@
+using System.IO;
+using System.Text.Json;
+using FileShelf.Win.Models;
+
+namespace FileShelf.Win.Services;
+
+public sealed class SettingsService
+{
+    private const double MinimumShelfHeight = 320;
+    private const double MinimumShelfWidth = 220;
+
+    private static readonly HashSet<string> ValidDockModes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "LeftTop",
+        "LeftCenter",
+        "LeftBottom",
+        "RightTop",
+        "RightCenter",
+        "RightBottom"
+    };
+
+    private static readonly HashSet<string> ValidTriggerModes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Manual",
+        "AnyDrag",
+        "AltDrag",
+        "DockZone",
+        "ScreenEdge"
+    };
+
+    private static readonly HashSet<string> ValidLanguages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        UiText.English,
+        UiText.Chinese
+    };
+
+    private readonly string _settingsPath;
+    private readonly LoggerService _logger;
+
+    public SettingsService(LoggerService logger)
+    {
+        _logger = logger;
+        _settingsPath = PortablePaths.SettingsPath;
+
+        try
+        {
+            Directory.CreateDirectory(PortablePaths.DataDirectory);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Portable data directory unavailable", ex);
+        }
+    }
+
+    public AppSettings Load()
+    {
+        if (!File.Exists(_settingsPath))
+        {
+            var defaults = CreateDefaultSettings();
+            Normalize(defaults);
+            TrySave(defaults);
+            return defaults;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(_settingsPath);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            Normalize(settings);
+            return settings;
+        }
+        catch
+        (Exception ex)
+        {
+            _logger.Error("Settings load failed; defaults restored", ex);
+            var brokenPath = Path.Combine(
+                Path.GetDirectoryName(_settingsPath)!,
+                $"settings.broken.{DateTime.Now:yyyyMMddHHmmss}.json");
+            try
+            {
+                File.Move(_settingsPath, brokenPath, overwrite: true);
+            }
+            catch (Exception moveException)
+            {
+                _logger.Error("Broken settings backup failed", moveException);
+            }
+
+            var defaults = CreateDefaultSettings();
+            TrySave(defaults);
+            return defaults;
+        }
+    }
+
+    public void Save(AppSettings settings)
+    {
+        var directory = Path.GetDirectoryName(_settingsPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+        File.WriteAllText(_settingsPath, json);
+    }
+
+    private void TrySave(AppSettings settings)
+    {
+        try
+        {
+            Save(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Settings save failed", ex);
+        }
+    }
+
+    private void Normalize(AppSettings settings)
+    {
+        var changed = false;
+        if (string.IsNullOrWhiteSpace(settings.TriggerMode))
+        {
+            settings.TriggerMode = settings.EnableDragTrigger ? "AltDrag" : "Manual";
+            changed = true;
+        }
+        else if (!ValidTriggerModes.Contains(settings.TriggerMode))
+        {
+            settings.TriggerMode = "Manual";
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.DesignProfile))
+        {
+            settings.DesignProfile = "YoinkEdge";
+            changed = true;
+        }
+
+        if (!ValidLanguages.Contains(settings.LanguageCode))
+        {
+            settings.LanguageCode = UiText.English;
+            changed = true;
+        }
+
+        if (settings.ShelfWidth < MinimumShelfWidth)
+        {
+            settings.ShelfWidth = MinimumShelfWidth;
+            changed = true;
+        }
+
+        if (settings.ShelfHeight < MinimumShelfHeight)
+        {
+            settings.ShelfHeight = MinimumShelfHeight;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.ShelfDockMode) || !ValidDockModes.Contains(settings.ShelfDockMode))
+        {
+            settings.ShelfDockMode = "RightCenter";
+            changed = true;
+        }
+
+        if (changed)
+        {
+            TrySave(settings);
+        }
+    }
+
+    private static AppSettings CreateDefaultSettings()
+    {
+        return new AppSettings
+        {
+            DesignProfile = "YoinkEdge",
+            TriggerMode = "ScreenEdge",
+            ShelfWidth = 335,
+            ShelfHeight = 540,
+            ShelfDockMode = "RightCenter"
+        };
+    }
+}

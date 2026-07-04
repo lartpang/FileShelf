@@ -1,0 +1,279 @@
+<Window x:Class="FileShelf.Win.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FileShelf (Portable)"
+        Width="460"
+        Height="500"
+        MinHeight="420"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        Background="#FFF5F8FA">
+    <Window.Resources>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="#FFFFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#FF222629" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonSurface"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.72" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SectionSurface" TargetType="Border">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Background" Value="#FFFFFFFF" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="#FF3E4448" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="IBeam" />
+        </Style>
+        <Style x:Key="ValueEditor" TargetType="TextBox">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+    </Window.Resources>
+
+    <Border Padding="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="150" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="SettingsTitleTextBlock"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#FF202326"
+                           VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <TextBlock x:Name="LanguageLabelTextBlock"
+                               Margin="0,0,8,0"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="LanguageComboBox"
+                              Width="96"
+                              Height="26"
+                              SelectionChanged="LanguageComboBox_SelectionChanged">
+                        <ComboBoxItem Tag="en" />
+                        <ComboBoxItem Tag="zh-CN" />
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Margin="0,12,0,0"
+                    Style="{StaticResource SectionSurface}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="86" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="TriggerLabelTextBlock"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="TriggerModeComboBox"
+                              Grid.Column="1"
+                              Height="26"
+                              SelectionChanged="TriggerModeComboBox_SelectionChanged">
+                        <ComboBoxItem Tag="Manual" />
+                        <ComboBoxItem Tag="AnyDrag" />
+                        <ComboBoxItem Tag="AltDrag" />
+                        <ComboBoxItem Tag="DockZone" />
+                        <ComboBoxItem Tag="ScreenEdge" />
+                    </ComboBox>
+
+                    <TextBlock x:Name="PositionLabelTextBlock"
+                               Grid.Row="1"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="DockModeComboBox"
+                              Grid.Row="1"
+                              Grid.Column="1"
+                              Height="26">
+                        <ComboBoxItem Tag="LeftTop" />
+                        <ComboBoxItem Tag="LeftCenter" />
+                        <ComboBoxItem Tag="LeftBottom" />
+                        <ComboBoxItem Tag="RightTop" />
+                        <ComboBoxItem Tag="RightCenter" />
+                        <ComboBoxItem Tag="RightBottom" />
+                    </ComboBox>
+
+                    <TextBlock x:Name="IgnoredAppsLabelTextBlock"
+                               Grid.Row="3"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <TextBox x:Name="IgnoredAppsTextBox"
+                             Grid.Row="3"
+                             Grid.Column="1"
+                             Height="24"
+                             Padding="5,1"
+                             FontSize="11" />
+
+                    <TextBlock x:Name="SizeLabelTextBlock"
+                               Grid.Row="2"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <ComboBox x:Name="ShelfSizeComboBox"
+                              Grid.Row="2"
+                              Grid.Column="1"
+                              Height="26">
+                        <ComboBoxItem Tag="Small" />
+                        <ComboBoxItem Tag="Medium" />
+                        <ComboBoxItem Tag="Large" />
+                        <ComboBoxItem Tag="Custom" />
+                    </ComboBox>
+
+                    <TextBlock x:Name="TriggerHintTextBlock"
+                               Grid.Row="4"
+                               Grid.ColumnSpan="2"
+                               Margin="0,8,0,0"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2"
+                    Margin="0,10,0,0"
+                    Style="{StaticResource SectionSurface}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="28" />
+                        <RowDefinition Height="28" />
+                        <RowDefinition Height="28" />
+                        <RowDefinition Height="28" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="74" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="HotkeyLabelTextBlock"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <TextBlock x:Name="HotkeyTextBlock"
+                               Grid.Column="1"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <TextBlock x:Name="StatusLabelTextBlock"
+                               Grid.Row="1"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <TextBlock x:Name="HotkeyStatusTextBlock"
+                               Grid.Row="1"
+                               Grid.Column="1"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+
+                    <TextBlock x:Name="DataLabelTextBlock"
+                               Grid.Row="2"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <Grid Grid.Row="2" Grid.Column="1">
+                        <TextBlock x:Name="DataPathTextBlock"
+                                   Style="{StaticResource ValueText}"
+                                   MouseLeftButtonDown="DataPathTextBlock_MouseLeftButtonDown" />
+                        <TextBox x:Name="DataPathTextBox"
+                                 Style="{StaticResource ValueEditor}"
+                                 LostFocus="DataPathTextBox_LostFocus"
+                                 KeyDown="PathTextBox_KeyDown" />
+                    </Grid>
+
+                    <TextBlock x:Name="LogLabelTextBlock"
+                               Grid.Row="3"
+                               FontSize="11"
+                               Foreground="#FF73776F"
+                               VerticalAlignment="Center" />
+                    <Grid Grid.Row="3" Grid.Column="1">
+                        <TextBlock x:Name="LogPathTextBlock"
+                                   Style="{StaticResource ValueText}"
+                                   MouseLeftButtonDown="LogPathTextBlock_MouseLeftButtonDown" />
+                        <TextBox x:Name="LogPathTextBox"
+                                 Style="{StaticResource ValueEditor}"
+                                 LostFocus="LogPathTextBox_LostFocus"
+                                 KeyDown="PathTextBox_KeyDown" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <DockPanel Grid.Row="3"
+                       Margin="0,12,0,0"
+                       LastChildFill="False">
+                <Button x:Name="ClearShelfButton"
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource ActionButton}"
+                        Background="#FFE9EEF1"
+                        Click="ClearShelf_Click" />
+                <Button x:Name="SaveButton"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource ActionButton}"
+                        Background="#FF2C739E"
+                        Foreground="#FFFFFFFF"
+                        MinWidth="72"
+                        IsDefault="True"
+                        Click="Save_Click" />
+                <Button x:Name="CancelButton"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource ActionButton}"
+                        Background="#FFE9EEF1"
+                        MinWidth="72"
+                        Margin="0,0,8,0"
+                        IsCancel="True" />
+            </DockPanel>
+        </Grid>
+    </Border>
+</Window>

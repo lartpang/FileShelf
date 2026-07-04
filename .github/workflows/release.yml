@@ -1,0 +1,89 @@
+name: Release Portable Windows Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing release tag, for example v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    env:
+      PROJECT_PATH: src\FileShelf.Win\FileShelf.Win.csproj
+      RUNTIME: win-x64
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $tag = "${{ inputs.version }}"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($tag) -or $tag -notmatch '^v[0-9A-Za-z][0-9A-Za-z._-]*$' -or $tag.Contains("..")) {
+            throw "Release tag must look like v1.2.3 and must not contain path traversal: $tag"
+          }
+
+          $version = $tag.Substring(1)
+          if ($version -notmatch '^[0-9]+(\.[0-9]+){1,3}([\-+][A-Za-z0-9.-]+)?$') {
+            throw "App version must be numeric semver after removing the leading v: $tag"
+          }
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "app_version=$version" >> $env:GITHUB_OUTPUT
+          "zip_name=FileShelf-$tag-win-x64-portable.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore $env:PROJECT_PATH -r $env:RUNTIME
+
+      - name: Publish portable app
+        shell: pwsh
+        run: .\scripts\publish-portable.ps1 -Runtime $env:RUNTIME -Version "${{ steps.version.outputs.app_version }}"
+
+      - name: Zip portable app
+        shell: pwsh
+        run: |
+          $source = "artifacts\FileShelf-portable-$env:RUNTIME\*"
+          $destination = "artifacts\${{ steps.version.outputs.zip_name }}"
+          Compress-Archive -Path $source -DestinationPath $destination -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.zip_name }}
+          path: artifacts/${{ steps.version.outputs.zip_name }}
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" `
+            "artifacts/${{ steps.version.outputs.zip_name }}#FileShelf Portable Windows (${{ steps.version.outputs.tag }})" `
+            --title "FileShelf ${{ steps.version.outputs.tag }}" `
+            --generate-notes `
+            --verify-tag
