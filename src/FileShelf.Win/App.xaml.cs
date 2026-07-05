@@ -117,7 +117,6 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        CaptureCurrentWindowSize();
         var settingsWindow = new SettingsWindow(
             _settings,
             _settingsService)
@@ -126,6 +125,7 @@ public partial class App : System.Windows.Application
         };
         _settingsWindow = settingsWindow;
         settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        settingsWindow.LanguageChanged += (_, _) => ApplyLanguage();
         if (settingsWindow.ShowDialog() == true)
         {
             _mainWindow.ApplySettings(_settings);
@@ -170,6 +170,17 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private void ApplyLanguage()
+    {
+        if (_settings is null || _mainWindow is null)
+        {
+            return;
+        }
+
+        _mainWindow.ApplyLanguage();
+        UpdateTrayText(_mainWindow.ItemCount);
+    }
+
     private void SaveWindowSettings()
     {
         if (_mainWindow is null || _settings is null || _settingsService is null)
@@ -179,28 +190,11 @@ public partial class App : System.Windows.Application
 
         try
         {
-            CaptureCurrentWindowSize();
             _settingsService.Save(_settings);
         }
         catch (Exception ex)
         {
             _logger?.Error("Window settings save failed", ex);
         }
-    }
-
-    private void CaptureCurrentWindowSize()
-    {
-        if (_mainWindow is null || _settings is null)
-        {
-            return;
-        }
-
-        if (!_mainWindow.IsPanelOpen)
-        {
-            return;
-        }
-
-        _settings.ShelfWidth = _mainWindow.Width;
-        _settings.ShelfHeight = _mainWindow.Height;
     }
 }

@@ -1,5 +1,7 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using FileShelf.Win.Models;
 using FileShelf.Win.Services;
 
@@ -13,9 +15,35 @@ public partial class AboutWindow : Window
     public AboutWindow(AppSettings settings)
     {
         InitializeComponent();
+        LoadLogo();
         _settings = settings;
         ApplyText();
         Loaded += AboutWindow_Loaded;
+    }
+
+    private void LoadLogo()
+    {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "FileShelfIconNotion.ico");
+        if (!File.Exists(iconPath))
+        {
+            return;
+        }
+
+        using var stream = File.OpenRead(iconPath);
+        var decoder = new IconBitmapDecoder(
+            stream,
+            BitmapCreateOptions.PreservePixelFormat,
+            BitmapCacheOption.OnLoad);
+        var frame = decoder.Frames
+            .OrderByDescending(candidate => candidate.PixelWidth * candidate.PixelHeight)
+            .FirstOrDefault();
+        if (frame is null)
+        {
+            return;
+        }
+
+        frame.Freeze();
+        AboutLogoImage.Source = frame;
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -86,7 +114,7 @@ public partial class AboutWindow : Window
             if (result.IsAvailable)
             {
                 UpdateTextBlock.Text = UiText.FormatVersion(language, "UpdateAvailable", result.LatestVersion);
-                UpdateTextBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x16, 0x73, 0x4A));
+                UpdateTextBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14));
                 OpenReleaseButton.Visibility = Visibility.Visible;
                 return;
             }

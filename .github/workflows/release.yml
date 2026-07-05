@@ -21,6 +21,7 @@ jobs:
     env:
       PROJECT_PATH: src\FileShelf.Win\FileShelf.Win.csproj
       RUNTIME: win-x64
+      CONFIGURATION: Release
 
     steps:
       - name: Check out source
@@ -61,7 +62,7 @@ jobs:
 
       - name: Publish portable app
         shell: pwsh
-        run: .\scripts\publish-portable.ps1 -Runtime $env:RUNTIME -Version "${{ steps.version.outputs.app_version }}" -Repository "${{ github.repository }}"
+        run: .\scripts\publish-portable.ps1 -Configuration $env:CONFIGURATION -Runtime $env:RUNTIME -Version "${{ steps.version.outputs.app_version }}" -Repository "${{ github.repository }}"
 
       - name: Zip portable app
         shell: pwsh

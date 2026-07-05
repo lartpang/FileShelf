@@ -16,12 +16,8 @@ public partial class SettingsWindow : Window
     private readonly AppSettings _settings;
     private readonly SettingsService _settingsService;
     private bool _isInitializing = true;
-    private static readonly ShelfSizePreset[] SizePresets =
-    {
-        new("Small", 260, 430),
-        new("Medium", 335, 540),
-        new("Large", 410, 620)
-    };
+
+    public event EventHandler? LanguageChanged;
 
     public SettingsWindow(
         AppSettings settings,
@@ -33,7 +29,6 @@ public partial class SettingsWindow : Window
         _settingsService = settingsService;
 
         SelectLanguage(_settings.LanguageCode);
-        SelectShelfSize();
         UpdatePathFields();
         ApplyLanguage();
 
@@ -50,15 +45,18 @@ public partial class SettingsWindow : Window
         }
 
         _settings.LanguageCode = languageCode;
-        SaveSettings();
+        var saved = SaveSettings();
         ApplyLanguage();
+        if (saved)
+        {
+            LanguageChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         _settings.TriggerMode = "Manual";
         _settings.EnableDragTrigger = false;
-        ApplyShelfSizePreset();
         if (!SaveSettings())
         {
             return;
@@ -188,11 +186,6 @@ public partial class SettingsWindow : Window
         LanguageLabelTextBlock.Text = UiText.Get(LanguageCode, "Language");
         SetComboBoxItemText(UiText.English, UiText.Get(LanguageCode, "English"));
         SetComboBoxItemText(UiText.Chinese, UiText.Get(LanguageCode, "Chinese"));
-        SizeLabelTextBlock.Text = UiText.Get(LanguageCode, "Size");
-        SetComboBoxItemText(ShelfSizeComboBox, "Small", UiText.Get(LanguageCode, "SizeSmall"));
-        SetComboBoxItemText(ShelfSizeComboBox, "Medium", UiText.Get(LanguageCode, "SizeMedium"));
-        SetComboBoxItemText(ShelfSizeComboBox, "Large", UiText.Get(LanguageCode, "SizeLarge"));
-        SetComboBoxItemText(ShelfSizeComboBox, "Custom", UiText.Get(LanguageCode, "SizeCustom"));
         DataLabelTextBlock.Text = UiText.Get(LanguageCode, "Data");
         LogLabelTextBlock.Text = UiText.Get(LanguageCode, "Log");
         DataBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseDataPath");
@@ -217,34 +210,6 @@ public partial class SettingsWindow : Window
         SelectComboBoxTag(LanguageComboBox, languageCode);
     }
 
-    private void SelectShelfSize()
-    {
-        foreach (var preset in SizePresets)
-        {
-            if (Math.Abs(_settings.ShelfWidth - preset.Width) < 1 &&
-                Math.Abs(_settings.ShelfHeight - preset.Height) < 1)
-            {
-                SelectComboBoxTag(ShelfSizeComboBox, preset.Tag);
-                return;
-            }
-        }
-
-        SelectComboBoxTag(ShelfSizeComboBox, "Custom");
-    }
-
-    private void ApplyShelfSizePreset()
-    {
-        var selectedTag = GetSelectedTag(ShelfSizeComboBox, "Custom");
-        var preset = SizePresets.FirstOrDefault(item => string.Equals(item.Tag, selectedTag, StringComparison.Ordinal));
-        if (preset is null)
-        {
-            return;
-        }
-
-        _settings.ShelfWidth = preset.Width;
-        _settings.ShelfHeight = preset.Height;
-    }
-
     private static void SelectComboBoxTag(WpfComboBox comboBox, string tag)
     {
         foreach (var item in comboBox.Items.OfType<ComboBoxItem>())
@@ -258,14 +223,6 @@ public partial class SettingsWindow : Window
 
         comboBox.SelectedIndex = 0;
     }
-
-    private static string GetSelectedTag(WpfComboBox comboBox, string fallback)
-    {
-        return comboBox.SelectedItem is ComboBoxItem item && item.Tag is string tag
-            ? tag
-            : fallback;
-    }
-
     private void SetComboBoxItemText(string languageCode, string text)
     {
         SetComboBoxItemText(LanguageComboBox, languageCode, text);
@@ -282,6 +239,4 @@ public partial class SettingsWindow : Window
             }
         }
     }
-
-    private sealed record ShelfSizePreset(string Tag, double Width, double Height);
 }

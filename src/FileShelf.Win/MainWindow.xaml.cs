@@ -3,9 +3,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using FileShelf.Win.Models;
 using FileShelf.Win.Services;
 using Forms = System.Windows.Forms;
@@ -24,8 +26,20 @@ public partial class MainWindow : Window
 {
     private const double IconWindowSize = 64;
     private const double IconSurfaceSize = 52;
+    private const double DefaultPanelWidth = 335;
     private const double PanelMinimumWidth = 220;
     private const double PanelMinimumHeight = 320;
+    private const double ResizeBorderThickness = 6;
+    private const int WmNcHitTest = 0x0084;
+    private const int HtClient = 1;
+    private const int HtLeft = 10;
+    private const int HtRight = 11;
+    private const int HtTop = 12;
+    private const int HtTopLeft = 13;
+    private const int HtTopRight = 14;
+    private const int HtBottom = 15;
+    private const int HtBottomLeft = 16;
+    private const int HtBottomRight = 17;
 
     private readonly DragDropService _dragDropService = new();
     private readonly LoggerService _logger;
@@ -47,9 +61,13 @@ public partial class MainWindow : Window
     private double _iconTop;
     private double _iconDragStartLeft;
     private double _iconDragStartTop;
+    private double? _runtimePanelWidth;
+    private double? _runtimePanelHeight;
+    private bool _isSettingPanelSize;
     private WpfPoint _dragStartPoint;
     private WpfPoint _iconDragStartScreenPoint;
     private ShelfItem? _dragItem;
+    private ShelfItem[] _dragSelectionSnapshot = Array.Empty<ShelfItem>();
 
     public MainWindow(
         AppSettings settings,
@@ -57,6 +75,7 @@ public partial class MainWindow : Window
         ShelfStateService shelfStateService)
     {
         InitializeComponent();
+        LoadFloatingIconLogo();
         _settings = settings;
         _logger = logger;
         _shelfStateService = shelfStateService;
@@ -64,9 +83,50 @@ public partial class MainWindow : Window
         Height = IconWindowSize;
         DataContext = this;
         Items.CollectionChanged += (_, _) => UpdateEmptyState();
+        SizeChanged += MainWindow_SizeChanged;
         LoadShelfState();
         ApplySettings(settings);
         UpdateEmptyState();
+    }
+
+    private void LoadFloatingIconLogo()
+    {
+        var resourcePath = Path.Combine(AppContext.BaseDirectory, "Resources");
+        var imageSource = TryLoadLargestIconFrame(Path.Combine(resourcePath, "FileShelfIconNotion.ico"));
+        if (imageSource is null)
+        {
+            return;
+        }
+
+        IconLogoImage.Source = imageSource;
+    }
+
+    private static ImageSource? TryLoadLargestIconFrame(string iconPath)
+    {
+        if (!File.Exists(iconPath))
+        {
+            return null;
+        }
+
+        using var stream = File.OpenRead(iconPath);
+        var decoder = new IconBitmapDecoder(
+            stream,
+            BitmapCreateOptions.PreservePixelFormat,
+            BitmapCacheOption.OnLoad);
+        var frame = decoder.Frames
+            .OrderByDescending(candidate => candidate.PixelWidth * candidate.PixelHeight)
+            .FirstOrDefault();
+        frame?.Freeze();
+        return frame;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        if (PresentationSource.FromVisual(this) is HwndSource source)
+        {
+            source.AddHook(WndProc);
+        }
     }
 
     public ObservableCollection<ShelfItem> Items { get; } = new();
@@ -217,11 +277,21 @@ public partial class MainWindow : Window
         _isPanelOpen = true;
         MinWidth = PanelMinimumWidth;
         MinHeight = PanelMinimumHeight;
-        ResizeMode = ResizeMode.CanResizeWithGrip;
+        ResizeMode = ResizeMode.CanResize;
         IconShell.Visibility = Visibility.Collapsed;
         ShelfShell.Visibility = Visibility.Visible;
-        Width = Math.Min(Math.Max(_settings.ShelfWidth, PanelMinimumWidth), Math.Max(PanelMinimumWidth, area.Width - 16));
-        Height = Math.Min(Math.Max(_settings.ShelfHeight, PanelMinimumHeight), Math.Max(PanelMinimumHeight, area.Height - 16));
+        var targetWidth = _runtimePanelWidth ?? DefaultPanelWidth;
+        var targetHeight = _runtimePanelHeight ?? area.Height / 3;
+        _isSettingPanelSize = true;
+        try
+        {
+            Width = Clamp(targetWidth, PanelMinimumWidth, area.Width - 16);
+            Height = Clamp(targetHeight, PanelMinimumHeight, area.Height - 16);
+        }
+        finally
+        {
+            _isSettingPanelSize = false;
+        }
     }
 
     private void PositionPanel(WpfPoint anchor, Rect area)
@@ -236,7 +306,6 @@ public partial class MainWindow : Window
         Top = Clamp(top, area.Top + 8, area.Bottom - Height - 8);
         var dockMode = openToLeft ? "RightCenter" : "LeftCenter";
         ApplyDockVisual(dockMode);
-        CollapseButton.Content = GetCollapseGlyph(dockMode);
     }
 
     private void SetIconPosition(double left, double top, Rect? workArea = null)
@@ -304,17 +373,19 @@ public partial class MainWindow : Window
             SetIconMode();
         }
 
+        ApplyLanguage();
+    }
+
+    public void ApplyLanguage()
+    {
         Title = UiText.Get(_settings.LanguageCode, "PortableTitle");
         AddButton.FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets");
-        CollapseButton.FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets");
         AddButton.Content = "\uE710";
         AddButton.ToolTip = UiText.Get(_settings.LanguageCode, "AddToShelf");
-        CollapseButton.ToolTip = UiText.Get(_settings.LanguageCode, "CollapseToIcon");
         IconShell.ToolTip = UiText.Get(_settings.LanguageCode, "IconTooltip");
         CountDragHandle.ToolTip = UiText.Get(_settings.LanguageCode, "DragAllFromCount");
         EmptyTitleTextBlock.Text = UiText.Get(_settings.LanguageCode, "DropFiles");
         EmptyHintTextBlock.Text = UiText.Get(_settings.LanguageCode, "PathOnly");
-        ContinueDropHintTextBlock.Text = UiText.Get(_settings.LanguageCode, "DropMoreFiles");
         if (_isDragActive)
         {
             ApplyDropVisualState(true, force: true);
@@ -366,12 +437,102 @@ public partial class MainWindow : Window
         ShowIconAtDefault();
     }
 
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!_isPanelOpen || _isSettingPanelSize)
+        {
+            return;
+        }
+
+        _runtimePanelWidth = Width;
+        _runtimePanelHeight = Height;
+    }
+
     private void Window_Deactivated(object? sender, EventArgs e)
     {
         if (_isPanelOpen && !_isDraggingOut)
         {
             HideToTray();
         }
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg != WmNcHitTest || !_isPanelOpen || _isHidingToTray)
+        {
+            return IntPtr.Zero;
+        }
+
+        var screenPoint = ToDipScreenPoint(GetScreenPoint(lParam));
+        var x = screenPoint.X - Left;
+        var y = screenPoint.Y - Top;
+        var visualLeft = ShelfShell.Margin.Left;
+        var visualTop = ShelfShell.Margin.Top;
+        var visualRight = Width - ShelfShell.Margin.Right;
+        var visualBottom = Height - ShelfShell.Margin.Bottom;
+        var onLeft = x >= visualLeft && x <= visualLeft + ResizeBorderThickness;
+        var onRight = x >= visualRight - ResizeBorderThickness && x <= visualRight;
+        var onTop = y >= visualTop && y <= visualTop + ResizeBorderThickness;
+        var onBottom = y >= visualBottom - ResizeBorderThickness && y <= visualBottom;
+
+        if (onTop && onLeft)
+        {
+            handled = true;
+            return new IntPtr(HtTopLeft);
+        }
+
+        if (onTop && onRight)
+        {
+            handled = true;
+            return new IntPtr(HtTopRight);
+        }
+
+        if (onBottom && onLeft)
+        {
+            handled = true;
+            return new IntPtr(HtBottomLeft);
+        }
+
+        if (onBottom && onRight)
+        {
+            handled = true;
+            return new IntPtr(HtBottomRight);
+        }
+
+        if (onLeft)
+        {
+            handled = true;
+            return new IntPtr(HtLeft);
+        }
+
+        if (onRight)
+        {
+            handled = true;
+            return new IntPtr(HtRight);
+        }
+
+        if (onTop)
+        {
+            handled = true;
+            return new IntPtr(HtTop);
+        }
+
+        if (onBottom)
+        {
+            handled = true;
+            return new IntPtr(HtBottom);
+        }
+
+        handled = true;
+        return new IntPtr(HtClient);
+    }
+
+    private static WpfPoint GetScreenPoint(IntPtr lParam)
+    {
+        var value = lParam.ToInt64();
+        var x = (short)(value & 0xFFFF);
+        var y = (short)((value >> 16) & 0xFFFF);
+        return new WpfPoint(x, y);
     }
 
     private void IconShell_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -488,13 +649,6 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private static string GetCollapseGlyph(string shelfPositionMode)
-    {
-        return shelfPositionMode.StartsWith("Left", StringComparison.OrdinalIgnoreCase)
-            ? "\uE76B"
-            : "\uE76C";
-    }
-
     private void ApplyDockVisual(string shelfDockMode)
     {
         var isLeft = shelfDockMode.StartsWith("Left", StringComparison.OrdinalIgnoreCase);
@@ -507,12 +661,6 @@ public partial class MainWindow : Window
     private void AddButton_Click(object sender, RoutedEventArgs e)
     {
         ShowShelfActionMenu(AddButton);
-        e.Handled = true;
-    }
-
-    private void ShelfBackground_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        ShowShelfActionMenu(sender as UIElement ?? DropTargetBorder);
         e.Handled = true;
     }
 
@@ -573,11 +721,6 @@ public partial class MainWindow : Window
         menu.IsOpen = true;
     }
 
-    private void CollapseButton_Click(object sender, RoutedEventArgs e)
-    {
-        HideToTray();
-    }
-
     private void RemoveItemButton_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not ShelfItem item)
@@ -585,13 +728,33 @@ public partial class MainWindow : Window
             return;
         }
 
-        RemoveShelfItem(item);
+        RemoveShelfItems(GetSelectedItemsForAction(item));
         e.Handled = true;
     }
 
     private void ShelfList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         UpdateEmptyState();
+    }
+
+    private void ShelfList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != Key.Delete)
+        {
+            return;
+        }
+
+        var selectedItems = ShelfList.SelectedItems
+            .OfType<ShelfItem>()
+            .Where(Items.Contains)
+            .ToArray();
+        if (selectedItems.Length == 0)
+        {
+            return;
+        }
+
+        RemoveShelfItems(selectedItems);
+        e.Handled = true;
     }
 
     private void SelectAllShelfItems()
@@ -685,11 +848,14 @@ public partial class MainWindow : Window
             menu.Items.Add(stackSelectedItem);
         }
 
+        var actionItems = GetSelectedItemsForAction(item);
         var removeItem = new WpfMenuItem
         {
-            Header = UiText.Get(_settings.LanguageCode, "Remove")
+            Header = actionItems.Length > 1
+                ? UiText.Get(_settings.LanguageCode, "RemoveSelected")
+                : UiText.Get(_settings.LanguageCode, "Remove")
         };
-        removeItem.Click += (_, _) => RemoveShelfItem(item);
+        removeItem.Click += (_, _) => RemoveShelfItems(actionItems);
         menu.Items.Add(removeItem);
 
         menu.PlacementTarget = sender as UIElement;
@@ -752,6 +918,7 @@ public partial class MainWindow : Window
 
         _dragStartPoint = e.GetPosition(this);
         _dragItem = (sender as FrameworkElement)?.DataContext as ShelfItem;
+        _dragSelectionSnapshot = GetSelectedItemsForAction(_dragItem);
     }
 
     private void FileItem_MouseMove(object sender, WpfMouseEventArgs e)
@@ -771,6 +938,7 @@ public partial class MainWindow : Window
         var dragItems = GetDragItems();
         DragShelfItems(dragItems);
         _dragItem = null;
+        _dragSelectionSnapshot = Array.Empty<ShelfItem>();
     }
 
     private void CountText_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -860,12 +1028,34 @@ public partial class MainWindow : Window
 
     private ShelfItem[] GetDragItems()
     {
-        if (_dragItem is not null && ShelfList.SelectedItems.Contains(_dragItem))
+        if (_dragItem is null)
         {
-            return ShelfList.SelectedItems.OfType<ShelfItem>().ToArray();
+            return Array.Empty<ShelfItem>();
         }
 
-        return _dragItem is null ? Array.Empty<ShelfItem>() : new[] { _dragItem };
+        var snapshot = _dragSelectionSnapshot
+            .Where(Items.Contains)
+            .ToArray();
+        return snapshot.Length > 0 ? snapshot : new[] { _dragItem };
+    }
+
+    private ShelfItem[] GetSelectedItemsForAction(ShelfItem? item)
+    {
+        if (item is null)
+        {
+            return Array.Empty<ShelfItem>();
+        }
+
+        if (!ShelfList.SelectedItems.Contains(item))
+        {
+            return new[] { item };
+        }
+
+        var selectedItems = ShelfList.SelectedItems
+            .OfType<ShelfItem>()
+            .Where(Items.Contains)
+            .ToArray();
+        return selectedItems.Length > 0 ? selectedItems : new[] { item };
     }
 
     private ShelfItem[] GetCountHandleDragItems()
@@ -894,12 +1084,10 @@ public partial class MainWindow : Window
         {
             IconShell.Width = isActive ? 58 : IconSurfaceSize;
             IconShell.Height = isActive ? 58 : IconSurfaceSize;
-            IconShell.Background = new SolidColorBrush(
-                isActive
-                    ? System.Windows.Media.Color.FromRgb(0x27, 0x8A, 0xF2)
-                    : System.Windows.Media.Color.FromRgb(0x72, 0xB8, 0xEA));
-            IconGlyphText.FontSize = isActive ? 31 : 28;
-            IconGlyphText.Margin = isActive ? new Thickness(0, -10, 0, 0) : new Thickness(0);
+            IconShell.Background = new SolidColorBrush(Colors.Transparent);
+            IconLogoImage.Width = isActive ? 50 : 46;
+            IconLogoImage.Height = isActive ? 50 : 46;
+            IconLogoImage.Margin = isActive ? new Thickness(0, -10, 0, 0) : new Thickness(0);
             IconDropHint.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
             IconDropHintTextBlock.Text = UiText.Get(_settings.LanguageCode, "ReleaseToStageShort");
             return;
@@ -907,23 +1095,23 @@ public partial class MainWindow : Window
 
         DropTargetBorder.Background = new SolidColorBrush(
             isActive
-                ? System.Windows.Media.Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF)
-                : System.Windows.Media.Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+                ? System.Windows.Media.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF)
+                : System.Windows.Media.Color.FromArgb(0xFA, 0xFF, 0xFF, 0xFF));
         EmptyIconSurface.Width = isActive ? 74 : 64;
         EmptyIconSurface.Height = isActive ? 74 : 64;
         EmptyIconSurface.Background = new SolidColorBrush(
             isActive
                 ? System.Windows.Media.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF)
-                : System.Windows.Media.Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF));
+                : System.Windows.Media.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
         EmptyIconText.FontSize = isActive ? 40 : 34;
         EmptyIconText.Foreground = new SolidColorBrush(
             isActive
-                ? System.Windows.Media.Color.FromRgb(0x19, 0x76, 0xD2)
-                : System.Windows.Media.Color.FromRgb(0x2C, 0x73, 0x9E));
-        ContinueDropHint.Background = new SolidColorBrush(
+                ? System.Windows.Media.Color.FromRgb(0x00, 0x00, 0x00)
+                : System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14));
+        AddButton.Background = new SolidColorBrush(
             isActive
-                ? System.Windows.Media.Color.FromArgb(0x66, 0x27, 0x8A, 0xF2)
-                : System.Windows.Media.Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
+                ? System.Windows.Media.Color.FromArgb(0x18, 0x00, 0x00, 0x00)
+                : System.Windows.Media.Color.FromArgb(0x10, 0x00, 0x00, 0x00));
 
         var dropTitle = isActive && draggedPathCount > 0
             ? UiText.FormatCount(_settings.LanguageCode, "ReleaseToStageCount", draggedPathCount)
@@ -931,9 +1119,6 @@ public partial class MainWindow : Window
             ? UiText.Get(_settings.LanguageCode, "ReleaseToStage")
             : UiText.Get(_settings.LanguageCode, "DropFiles");
         EmptyTitleTextBlock.Text = dropTitle;
-        ContinueDropHintTextBlock.Text = isActive
-            ? dropTitle
-            : UiText.Get(_settings.LanguageCode, "DropMoreFiles");
         EmptyHintTextBlock.Text = isActive
             ? UiText.Get(_settings.LanguageCode, "ReleaseToStageHint")
             : UiText.Get(_settings.LanguageCode, "PathOnly");
@@ -953,9 +1138,8 @@ public partial class MainWindow : Window
 
         if (Items.Count > 0)
         {
-            ContinueDropHint.Visibility = Visibility.Visible;
-            ContinueDropHint.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xAA, 0xFF, 0xFF, 0xFF));
-            ContinueDropHintTextBlock.Text = text;
+            AddButton.Visibility = Visibility.Visible;
+            AddButton.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0x18, 0x00, 0x00, 0x00));
         }
         else
         {
@@ -1064,13 +1248,20 @@ public partial class MainWindow : Window
 
     private void RemoveShelfItem(ShelfItem item)
     {
-        if (RemoveShelfItemsAsBatch(new[] { item }) == 0)
+        RemoveShelfItems(new[] { item });
+    }
+
+    private void RemoveShelfItems(ShelfItem[] items)
+    {
+        var removed = RemoveShelfItemsAsBatch(items);
+        if (removed == 0)
         {
             return;
         }
 
-        _logger.Info($"Shelf item removed; totalCount={Items.Count}");
+        _logger.Info($"Shelf items removed; removedCount={removed}; totalCount={Items.Count}");
         PersistShelf();
+        UpdateEmptyState();
     }
 
     private void TogglePin(ShelfItem item)
@@ -1371,7 +1562,7 @@ public partial class MainWindow : Window
     {
         var hasItems = Items.Count > 0;
         EmptyState.Visibility = hasItems ? Visibility.Collapsed : Visibility.Visible;
-        ContinueDropHint.Visibility = hasItems ? Visibility.Visible : Visibility.Collapsed;
+        AddButton.Visibility = Visibility.Visible;
         var selectedCount = ShelfList.SelectedItems.OfType<ShelfItem>().Sum(item => item.FilePaths.Count);
         var hasSelection = ShelfList.SelectedItems.Count > 0;
         CountText.Text = hasSelection
@@ -1383,17 +1574,17 @@ public partial class MainWindow : Window
             ? UiText.Get(_settings.LanguageCode, hasSelection ? "DragSelectionFromCount" : "DragAllFromCount")
             : null;
         CountDragHandle.Background = new SolidColorBrush(hasSelection
-            ? System.Windows.Media.Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)
+            ? System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14)
             : hasItems
-                ? System.Windows.Media.Color.FromArgb(0x44, 0xFF, 0xFF, 0xFF)
-                : System.Windows.Media.Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
+                ? System.Windows.Media.Color.FromArgb(0x10, 0x00, 0x00, 0x00)
+                : System.Windows.Media.Color.FromArgb(0x08, 0x00, 0x00, 0x00));
         CountIconSurface.Background = new SolidColorBrush(hasSelection
-            ? System.Windows.Media.Color.FromRgb(0x27, 0x8A, 0xF2)
+            ? Colors.White
             : hasItems
-                ? System.Windows.Media.Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF)
-                : System.Windows.Media.Color.FromArgb(0x44, 0xFF, 0xFF, 0xFF));
-        CountIconText.Foreground = new SolidColorBrush(hasSelection ? Colors.White : System.Windows.Media.Color.FromRgb(0x0F, 0x5D, 0x86));
-        CountText.Foreground = new SolidColorBrush(hasSelection ? System.Windows.Media.Color.FromRgb(0x0F, 0x35, 0x50) : Colors.White);
+                ? Colors.White
+                : System.Windows.Media.Color.FromArgb(0x88, 0xFF, 0xFF, 0xFF));
+        CountIconText.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14));
+        CountText.Foreground = new SolidColorBrush(hasSelection ? Colors.White : System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14));
         ItemCountChanged?.Invoke(this, ItemCount);
     }
 

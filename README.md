@@ -1,6 +1,5 @@
 <p align="center">
-  <img src="src/FileShelf.Win/Resources/FileShelfIcon.png" alt="FileShelf logo" width="160">
-  <img src="src/FileShelf.Win/Resources/FileShelfIconNotion.png" alt="FileShelf outline logo" width="160">
+  <img src="src/FileShelf.Win/Resources/FileShelfIconNotion.ico" alt="FileShelf logo" width="160">
 </p>
 
 <h1 align="center">FileShelf</h1>
@@ -10,6 +9,18 @@
 </p>
 
 FileShelf stores file paths only. It does not copy, move, delete, modify, upload, or read file contents, and it does not manage clipboard history.
+
+## How It Feels
+
+| Stage files | Keep them ready | Drag them out |
+| --- | --- | --- |
+| Drop files or folders onto the floating FileShelf icon or the opened shelf panel. | Pinned items, grouped drops, selected items, and missing-file hints stay visible in the shelf. | Drag one item, a selection, or the item-count handle into Explorer or another app. |
+
+## Running Screenshot
+
+<p align="center">
+  <img src="docs/images/fileshelf-shelf.png" alt="FileShelf opened shelf panel with staged files, selected item, pinned group, and drag-out controls" width="320">
+</p>
 
 ## Main Features
 
@@ -23,7 +34,7 @@ FileShelf stores file paths only. It does not copy, move, delete, modify, upload
 - Restore recently removed entries during the current app session.
 - Tray icon control: left click toggles the shelf, right click opens Settings, About, or Exit.
 - Always-on-top floating folder icon: double-click opens the shelf panel, drag it to reposition, and drop files onto it to stage.
-- Configurable shelf size preset, language, data path, and log path.
+- Configurable language and data path.
 - Chinese and English interface switching.
 
 ## For Users
@@ -63,7 +74,6 @@ No installation is required. Runtime data is stored beside the executable by def
 - Runtime state defaults to `FileShelfData` beside the executable.
 - Settings are stored in `FileShelfData\settings.json`.
 - Shelf metadata is stored in `FileShelfData\shelf.json`.
-- Logs are stored in `FileShelfData\logs\fileshelf.log`.
 - Build metadata is stored in `FileShelf.app.json` beside the executable when published; it controls About version text and update checks.
 - FileShelf does not register global hotkeys or mouse hooks.
 - If the app crashes, FileShelf leaves only its portable data and log files.
@@ -122,11 +132,10 @@ This writes `FileShelf.app.json` into the portable output. You can customize tha
 ### Project Layout
 
 - `FileShelf.sln`: solution file for IDEs and command-line builds.
-- `CHANGELOG.md`: versioned release notes.
 - `FileShelf.app.example.json`: external app metadata example for About version text and update checks.
 - `src\FileShelf.Win\`: WPF application source.
-- `src\FileShelf.Win\Resources\`: application icons and README logo assets.
-- `src\FileShelf.Win\Services\`: settings, logging, tray, drag/drop, and state services.
+- `src\FileShelf.Win\Resources\`: application logo and icon asset.
+- `src\FileShelf.Win\Services\`: settings, tray, drag/drop, and state services.
 - `src\FileShelf.Win\Models\`: shelf item and settings models.
 - `scripts\publish-portable.ps1`: clean portable publish script.
 - `.github\workflows\release.yml`: GitHub Actions release workflow.
@@ -154,17 +163,13 @@ The workflow will:
 
 You can also run the workflow manually from GitHub Actions with an existing tag such as `v0.2.0`.
 
-### Current Release
-
-`v0.2.0` switches FileShelf to the floating folder icon workflow, removes global hotkeys and mouse hooks, refreshes Settings, and adds external release metadata plus one-shot GitHub update checks. See `CHANGELOG.md` for the detailed release notes.
-
 If release creation fails with a permission error, open the GitHub repository settings and ensure Actions can create releases. The workflow itself requests only `contents: write`.
 
 ### Development Notes
 
 - Keep the app portable: do not add installers, registry writes, startup entries, shell extensions, or background services.
 - Keep the file-shelf scope narrow: do not add clipboard history or file-content indexing.
-- Treat staged files as external user data: store paths only and avoid logging full source paths unless explicitly needed for diagnostics.
+- Treat staged files as external user data: store paths only.
 - Prefer small WPF changes that preserve the current shelf-first workflow.
 - After changes, run:
 

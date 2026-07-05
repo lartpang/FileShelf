@@ -13,4 +13,10 @@
     <RepositoryUrl>https://github.com/lartpang/FileShelf</RepositoryUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="Resources\FileShelfIconNotion.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

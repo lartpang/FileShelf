@@ -6,9 +6,6 @@ namespace FileShelf.Win.Services;
 
 public sealed class SettingsService
 {
-    private const double MinimumShelfHeight = 320;
-    private const double MinimumShelfWidth = 220;
-
     private static readonly HashSet<string> ValidDockModes = new(StringComparer.OrdinalIgnoreCase)
     {
         "LeftTop",
@@ -136,18 +133,6 @@ public sealed class SettingsService
             changed = true;
         }
 
-        if (settings.ShelfWidth < MinimumShelfWidth)
-        {
-            settings.ShelfWidth = MinimumShelfWidth;
-            changed = true;
-        }
-
-        if (settings.ShelfHeight < MinimumShelfHeight)
-        {
-            settings.ShelfHeight = MinimumShelfHeight;
-            changed = true;
-        }
-
         if (string.IsNullOrWhiteSpace(settings.ShelfDockMode) || !ValidDockModes.Contains(settings.ShelfDockMode))
         {
             settings.ShelfDockMode = "RightCenter";
@@ -167,8 +152,6 @@ public sealed class SettingsService
             DesignProfile = "YoinkEdge",
             EnableDragTrigger = false,
             TriggerMode = "Manual",
-            ShelfWidth = 335,
-            ShelfHeight = 540,
             ShelfDockMode = "RightCenter"
         };
     }

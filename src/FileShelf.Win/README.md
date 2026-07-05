@@ -23,7 +23,7 @@ out of scope.
 - Drag the floating folder icon to reposition it.
 - Drop files onto the floating folder icon to stage them; moving away cancels the interaction.
 - Show or collapse the Shelf panel from the tray icon.
-- Configure Shelf size presets from Settings.
+- Configure language and data path from Settings.
 
 ## Portability and safety
 
@@ -34,7 +34,6 @@ out of scope.
 - Removing an item from the Shelf only removes FileShelf's saved path metadata.
 - FileShelf does not register global hotkeys or mouse hooks.
 - Published builds can include `FileShelf.app.json` next to the executable for About version text and GitHub Release update checks.
-- Logs default to `FileShelfData\logs\fileshelf.log`; the path can be edited in Settings.
 
 ## Run
 
@@ -57,10 +56,3 @@ dotnet build FileShelf.sln
 The portable publish script writes a clean app folder under
 `artifacts\FileShelf-portable-win-x64` and excludes runtime `FileShelfData` state.
 Pass `-Version 0.2.0 -Repository lartpang/FileShelf` to stamp the About version and enable update checks from GitHub Releases.
-
-## v0.2.0 Notes
-
-- Default interaction is now the floating folder icon.
-- Global hotkeys and mouse-hook trigger modes were removed.
-- Settings now only contains configuration items and uses refreshed controls.
-- About reads release metadata from `FileShelf.app.json` and checks GitHub Releases once per app session.

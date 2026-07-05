@@ -6,14 +6,15 @@
         Height="410"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Background="#FFF5F8FA">
+        Background="#FFF8F8F8">
     <Window.Resources>
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Background" Value="#FF2C739E" />
+            <Setter Property="Background" Value="#FF141414" />
             <Setter Property="Foreground" Value="#FFFFFFFF" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -26,10 +27,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.86" />
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.9" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.72" />
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.78" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -46,27 +47,21 @@
             </Grid.RowDefinitions>
 
             <StackPanel Orientation="Horizontal">
-                <Border Width="32"
-                        Height="32"
-                        Background="#FF2C739E"
-                        CornerRadius="7">
-                    <TextBlock Text="D"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="#FFFFFFFF" />
-                </Border>
+                <Image x:Name="AboutLogoImage"
+                       Width="36"
+                       Height="36"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center" />
                 <StackPanel Margin="10,0,0,0"
                             VerticalAlignment="Center">
                     <TextBlock x:Name="TitleTextBlock"
                                FontSize="18"
                                FontWeight="SemiBold"
-                               Foreground="#FF202326" />
+                               Foreground="#FF141414" />
                     <TextBlock x:Name="SubtitleTextBlock"
                                Margin="0,2,0,0"
                                FontSize="11"
-                               Foreground="#FF73776F" />
+                               Foreground="#FF5A5A5A" />
                 </StackPanel>
             </StackPanel>
 
@@ -74,6 +69,8 @@
                     Margin="0,14,0,0"
                     Padding="12"
                     Background="#FFFFFFFF"
+                    BorderBrush="#1F000000"
+                    BorderThickness="1"
                     CornerRadius="8">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -91,29 +88,29 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock x:Name="VersionLabelTextBlock" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="VersionTextBlock" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="VersionLabelTextBlock" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="VersionTextBlock" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="RuntimeLabelTextBlock" Grid.Row="1" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="RuntimeTextBlock" Grid.Row="1" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="RuntimeLabelTextBlock" Grid.Row="1" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="RuntimeTextBlock" Grid.Row="1" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="UpdateLabelTextBlock" Grid.Row="2" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="UpdateTextBlock" Grid.Row="2" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="UpdateLabelTextBlock" Grid.Row="2" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="UpdateTextBlock" Grid.Row="2" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="ModeLabelTextBlock" Grid.Row="3" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="ModeTextBlock" Grid.Row="3" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="ModeLabelTextBlock" Grid.Row="3" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="ModeTextBlock" Grid.Row="3" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="DataLabelTextBlock" Grid.Row="4" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="DataTextBlock" Grid.Row="4" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="DataLabelTextBlock" Grid.Row="4" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="DataTextBlock" Grid.Row="4" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="LogLabelTextBlock" Grid.Row="5" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="LogTextBlock" Grid.Row="5" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="LogLabelTextBlock" Grid.Row="5" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="LogTextBlock" Grid.Row="5" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="DevelopmentLabelTextBlock" Grid.Row="6" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Center" />
-                    <TextBlock x:Name="DevelopmentTextBlock" Grid.Row="6" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="DevelopmentLabelTextBlock" Grid.Row="6" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Center" />
+                    <TextBlock x:Name="DevelopmentTextBlock" Grid.Row="6" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
 
-                    <TextBlock x:Name="ScopeLabelTextBlock" Grid.Row="7" FontSize="11" Foreground="#FF73776F" VerticalAlignment="Top" Margin="0,6,0,0" />
-                    <TextBlock x:Name="ScopeTextBlock" Grid.Row="7" Grid.Column="1" FontSize="11" Foreground="#FF202326" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ScopeLabelTextBlock" Grid.Row="7" FontSize="11" Foreground="#FF5A5A5A" VerticalAlignment="Top" Margin="0,6,0,0" />
+                    <TextBlock x:Name="ScopeTextBlock" Grid.Row="7" Grid.Column="1" FontSize="11" Foreground="#FF141414" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </Grid>
             </Border>
 

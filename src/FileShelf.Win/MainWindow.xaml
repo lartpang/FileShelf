@@ -28,9 +28,9 @@
             <Setter Property="Height" Value="24" />
             <Setter Property="MinWidth" Value="26" />
             <Setter Property="Padding" Value="8,0" />
-            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="Background" Value="#0F000000" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="#FF0F3550" />
+            <Setter Property="Foreground" Value="#FF141414" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -44,10 +44,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Background" Value="#55FFFFFF" />
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#18000000" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Background" Value="#77FFFFFF" />
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#26000000" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -63,6 +63,77 @@
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
             <Setter Property="MinWidth" Value="18" />
         </Style>
+
+        <Style x:Key="ShelfScrollBarPageButton" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ShelfScrollBarThumb" TargetType="Thumb">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbSurface"
+                                Width="6"
+                                Margin="2"
+                                Background="#66000000"
+                                CornerRadius="3" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbSurface" Property="Background" Value="#88000000" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbSurface" Property="Background" Value="#AA000000" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Width="{TemplateBinding Width}"
+                              Background="Transparent"
+                              SnapsToDevicePixels="True">
+                            <Border Margin="2,3"
+                                    Background="#12000000"
+                                    CornerRadius="5" />
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="True"
+                                   Minimum="{TemplateBinding Minimum}"
+                                   Maximum="{TemplateBinding Maximum}"
+                                   Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                   ViewportSize="{TemplateBinding ViewportSize}">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  Style="{StaticResource ShelfScrollBarPageButton}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ShelfScrollBarThumb}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  Style="{StaticResource ShelfScrollBarPageButton}" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -71,9 +142,8 @@
             Height="52"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            Background="#D472B8EA"
-            BorderBrush="#88FFFFFF"
-            BorderThickness="1"
+            Background="Transparent"
+            BorderThickness="0"
             CornerRadius="13"
             Cursor="Hand"
             ToolTip="FileShelf"
@@ -81,26 +151,19 @@
             MouseLeftButtonUp="IconShell_MouseLeftButtonUp"
             MouseMove="IconShell_MouseMove"
             MouseRightButtonDown="IconShell_MouseRightButtonDown">
-        <Border.Effect>
-            <DropShadowEffect x:Name="IconShadow"
-                              BlurRadius="14"
-                              ShadowDepth="3"
-                              Direction="180"
-                              Color="#802A5872"
-                              Opacity="0.5" />
-        </Border.Effect>
         <Grid>
-            <TextBlock x:Name="IconGlyphText"
-                       Text="&#xE8B7;"
-                       FontFamily="Segoe MDL2 Assets"
-                       FontSize="28"
-                       Foreground="#FFFFFFFF"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
+            <Image x:Name="IconLogoImage"
+                   Width="46"
+                   Height="46"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
             <Border x:Name="IconDropHint"
                     Height="16"
                     Width="46"
-                    Background="#33FFFFFF"
+                    Background="#EFFFFFFF"
+                    BorderBrush="#66141414"
+                    BorderThickness="1"
                     CornerRadius="7"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Bottom"
@@ -108,7 +171,7 @@
                     Visibility="Collapsed">
                 <TextBlock x:Name="IconDropHintTextBlock"
                            FontSize="8.5"
-                           Foreground="#FFFFFFFF"
+                           Foreground="#FF141414"
                            TextAlignment="Center"
                            TextTrimming="CharacterEllipsis"
                            VerticalAlignment="Center" />
@@ -120,8 +183,8 @@
             Margin="10"
             CornerRadius="14"
             Visibility="Collapsed"
-            Background="#D472B8EA"
-            BorderBrush="#66FFFFFF"
+            Background="#F4FFFFFF"
+            BorderBrush="#CC171717"
             BorderThickness="1"
             Padding="8">
         <Border.RenderTransform>
@@ -129,30 +192,29 @@
         </Border.RenderTransform>
         <Border.Effect>
             <DropShadowEffect x:Name="ShelfShadow"
-                              BlurRadius="18"
-                              ShadowDepth="4"
+                              BlurRadius="14"
+                              ShadowDepth="2"
                               Direction="270"
-                              Color="#802A5872"
-                              Opacity="0.55" />
+                              Color="#55111111"
+                              Opacity="0.35" />
         </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="18" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="26" />
             </Grid.RowDefinitions>
 
             <Border Grid.Row="0"
                     CornerRadius="8"
-                    Background="#11FFFFFF"
+                    Background="#08000000"
                     PreviewMouseLeftButtonDown="TitleBar_PreviewMouseLeftButtonDown">
                 <Grid Margin="8,0">
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Ellipse Width="4" Height="4" Fill="#77FFFFFF" />
-                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#77FFFFFF" />
-                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#77FFFFFF" />
+                        <Ellipse Width="4" Height="4" Fill="#66000000" />
+                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#66000000" />
+                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#66000000" />
                     </StackPanel>
                     <Border x:Name="CountDragHandle"
                             HorizontalAlignment="Right"
@@ -160,7 +222,7 @@
                             MaxWidth="190"
                             Height="18"
                             Padding="3,0,7,0"
-                            Background="#44FFFFFF"
+                            Background="#10000000"
                             CornerRadius="9"
                             Cursor="Hand"
                             MouseLeftButtonDown="CountText_MouseLeftButtonDown"
@@ -170,21 +232,21 @@
                             <Border x:Name="CountIconSurface"
                                     Width="14"
                                     Height="14"
-                                    Background="#55FFFFFF"
+                                    Background="#FFFFFFFF"
                                     CornerRadius="7"
                                     VerticalAlignment="Center">
                                 <TextBlock x:Name="CountIconText"
                                            Text="&#xE7C3;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="8.5"
-                                           Foreground="#FF0F5D86"
+                                           Foreground="#FF141414"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center" />
                             </Border>
                             <TextBlock x:Name="CountText"
                                        Margin="5,0,0,0"
                                        FontSize="9.5"
-                                       Foreground="#F2FFFFFF"
+                                       Foreground="#FF141414"
                                        VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
                         </StackPanel>
@@ -193,10 +255,11 @@
             </Border>
 
             <Grid Grid.Row="1"
-                  Margin="0,6,0,0"
-                  MouseRightButtonUp="ShelfBackground_MouseRightButtonUp">
+                  Margin="0,6,0,0">
                 <Border x:Name="DropTargetBorder"
-                        Background="#33FFFFFF"
+                        Background="#FAFFFFFF"
+                        BorderBrush="#1F000000"
+                        BorderThickness="1"
                         CornerRadius="12">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -210,7 +273,9 @@
                                  Background="Transparent"
                                  Padding="7"
                                  SelectionChanged="ShelfList_SelectionChanged"
+                                 KeyDown="ShelfList_KeyDown"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.CanContentScroll="True"
                                  VirtualizingPanel.IsVirtualizing="True"
                                  VirtualizingPanel.VirtualizationMode="Recycling"
@@ -241,7 +306,9 @@
                                 <Border x:Name="ItemSurface"
                                         MinHeight="54"
                                         Padding="7"
-                                        Background="#DDF4FBFF"
+                                        Background="#FFFFFFFF"
+                                        BorderBrush="#1F000000"
+                                        BorderThickness="1"
                                         CornerRadius="10"
                                         MouseLeftButtonDown="FileItem_MouseLeftButtonDown"
                                         MouseMove="FileItem_MouseMove"
@@ -260,7 +327,7 @@
                                                     Margin="7,2,0,0"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
-                                                    Background="#77FFFFFF"
+                                                    Background="#FFEAEAEA"
                                                     CornerRadius="7"
                                                     Visibility="Collapsed" />
                                             <Border x:Name="GroupLayerMid"
@@ -269,7 +336,7 @@
                                                     Margin="4,4,0,0"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
-                                                    Background="#AAFFFFFF"
+                                                    Background="#FFF3F3F3"
                                                     CornerRadius="8"
                                                     Visibility="Collapsed" />
                                             <Border x:Name="BadgeSurface"
@@ -278,6 +345,8 @@
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Background="#FFFFFFFF"
+                                                    BorderBrush="#33141414"
+                                                    BorderThickness="1"
                                                     CornerRadius="8"
                                                     Visibility="{Binding BadgeVisibility}">
                                                 <TextBlock x:Name="BadgeText"
@@ -286,7 +355,7 @@
                                                            VerticalAlignment="Center"
                                                            FontSize="9"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#FF1C6B94"
+                                                           Foreground="#FF141414"
                                                            TextTrimming="CharacterEllipsis" />
                                             </Border>
                                             <Border x:Name="IconSurface"
@@ -295,6 +364,8 @@
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Background="#FFFFFFFF"
+                                                    BorderBrush="#33141414"
+                                                    BorderThickness="1"
                                                     CornerRadius="8"
                                                     Visibility="{Binding IconVisibility}">
                                                 <Image Source="{Binding IconImage}"
@@ -313,20 +384,20 @@
                                                        Text="{Binding Name}"
                                                        FontSize="10"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#FF173244"
+                                                       Foreground="#FF141414"
                                                        TextTrimming="CharacterEllipsis" />
                                             <TextBlock x:Name="ItemPathText"
                                                        Text="{Binding PathSummary}"
                                                        Margin="0,1,0,0"
                                                        FontSize="8.5"
-                                                       Foreground="#FF587281"
+                                                       Foreground="#FF5A5A5A"
                                                        ToolTip="{Binding FullPathToolTip}"
                                                        TextTrimming="CharacterEllipsis" />
                                             <TextBlock x:Name="MissingTextBlock"
                                                        Text="{Binding MissingText}"
                                                        Margin="0,1,0,0"
                                                        FontSize="9"
-                                                       Foreground="#FFB3261E"
+                                                       Foreground="#FF8A5A00"
                                                        Visibility="{Binding MissingVisibility}" />
                                         </StackPanel>
                                         <TextBlock x:Name="PinStatusText"
@@ -334,7 +405,7 @@
                                                    Text="&#xE72E;"
                                                    FontFamily="Segoe MDL2 Assets"
                                                    FontSize="12"
-                                                   Foreground="#884B6A7A"
+                                                   Foreground="#88141414"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
                                                    ToolTip="{Binding PinToolTip}"
@@ -368,17 +439,17 @@
                                 </Border>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsGroup}" Value="True">
-                                        <Setter TargetName="ItemSurface" Property="Background" Value="#EAF2FCFF" />
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FFF8F8F8" />
                                         <Setter TargetName="GroupLayerBack" Property="Visibility" Value="Visible" />
                                         <Setter TargetName="GroupLayerMid" Property="Visibility" Value="Visible" />
-                                        <Setter TargetName="BadgeSurface" Property="Background" Value="#FF2C739E" />
+                                        <Setter TargetName="BadgeSurface" Property="Background" Value="#FF141414" />
                                         <Setter TargetName="BadgeText" Property="Foreground" Value="#FFFFFFFF" />
                                         <Setter TargetName="IconSurface" Property="Background" Value="#FFFFFFFF" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Exists}" Value="False">
-                                        <Setter TargetName="ItemSurface" Property="Background" Value="#DCEBF1F4" />
-                                        <Setter TargetName="ItemNameText" Property="Foreground" Value="#FF607784" />
-                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#FF8798A1" />
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FFF0F0F0" />
+                                        <Setter TargetName="ItemNameText" Property="Foreground" Value="#FF696969" />
+                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#FF8A8A8A" />
                                         <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.55" />
                                         <Setter TargetName="IconSurface" Property="Opacity" Value="0.55" />
                                     </DataTrigger>
@@ -387,61 +458,50 @@
                                             <Condition Binding="{Binding Exists}" Value="True" />
                                             <Condition Binding="{Binding HasMissingPaths}" Value="True" />
                                         </MultiDataTrigger.Conditions>
-                                        <Setter TargetName="ItemSurface" Property="Background" Value="#F4FFF8EA" />
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FFFFFAEE" />
                                         <Setter TargetName="MissingTextBlock" Property="Foreground" Value="#FF9B5B00" />
                                         <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.78" />
                                         <Setter TargetName="IconSurface" Property="Opacity" Value="0.78" />
                                     </MultiDataTrigger>
                                     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                        <Setter TargetName="ItemSurface" Property="Background" Value="#EEF9FDFF" />
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FFF7F7F7" />
                                         <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
                                         <Setter TargetName="PinStatusText" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FF278AF2" />
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FF141414" />
                                         <Setter TargetName="BadgeSurface" Property="Background" Value="#FFFFFFFF" />
-                                        <Setter TargetName="BadgeText" Property="Foreground" Value="#FF1C6B94" />
+                                        <Setter TargetName="BadgeText" Property="Foreground" Value="#FF141414" />
                                         <Setter TargetName="IconSurface" Property="Background" Value="#FFFFFFFF" />
                                         <Setter TargetName="ItemNameText" Property="Foreground" Value="#FFFFFFFF" />
-                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#DDEAF6FF" />
+                                        <Setter TargetName="ItemPathText" Property="Foreground" Value="#FFE5E5E5" />
                                         <Setter TargetName="MissingTextBlock" Property="Foreground" Value="#FFFFE2E0" />
                                         <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
                                         <Setter TargetName="PinStatusText" Property="Visibility" Value="Collapsed" />
-                                        <Setter TargetName="PinItemButton" Property="Background" Value="#44FFFFFF" />
+                                        <Setter TargetName="PinItemButton" Property="Background" Value="#26FFFFFF" />
                                         <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsPinned}" Value="True">
                                         <Setter TargetName="PinItemButton" Property="Content" Value="&#xE77A;" />
-                                        <Setter TargetName="PinItemButton" Property="Background" Value="#FF2C739E" />
+                                        <Setter TargetName="PinItemButton" Property="Background" Value="#FF141414" />
                                         <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                         </ListBox>
-                        <Border x:Name="ContinueDropHint"
+                        <Button x:Name="AddButton"
                                 Grid.Row="1"
-                                Margin="7,0,7,7"
-                                Height="30"
-                                Background="#22FFFFFF"
-                                CornerRadius="9"
-                                Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                <TextBlock Text="&#xE710;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="11"
-                                           Foreground="#DDEDF8FF"
-                                           VerticalAlignment="Center" />
-                                <TextBlock x:Name="ContinueDropHintTextBlock"
-                                           Margin="5,0,0,0"
-                                           FontSize="10"
-                                           Foreground="#DDEDF8FF"
-                                           VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </Border>
+                                Width="48"
+                                Height="24"
+                                Margin="0,0,0,5"
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource ShelfButton}"
+                                Background="#10000000"
+                                Foreground="#FF141414"
+                                FontSize="15"
+                                Padding="0"
+                                Click="AddButton_Click" />
                     </Grid>
                 </Border>
 
@@ -451,7 +511,9 @@
                     <Border x:Name="EmptyIconSurface"
                             Width="64"
                             Height="64"
-                            Background="#66FFFFFF"
+                            Background="#FFFFFFFF"
+                            BorderBrush="#FF141414"
+                            BorderThickness="1"
                             CornerRadius="18">
                         <TextBlock x:Name="EmptyIconText"
                                    Text="&#xE896;"
@@ -459,40 +521,24 @@
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
                                    FontSize="34"
-                                   Foreground="#FF2C739E" />
+                                   Foreground="#FF141414" />
                     </Border>
                     <TextBlock x:Name="EmptyTitleTextBlock"
                                Margin="0,12,0,0"
                                FontSize="14"
                                FontWeight="SemiBold"
-                               Foreground="#FFFFFFFF"
+                               Foreground="#FF141414"
                                HorizontalAlignment="Center" />
                     <TextBlock x:Name="EmptyHintTextBlock"
                                Margin="0,5,0,0"
                                FontSize="10"
-                               Foreground="#E8F8FCFF"
+                               Foreground="#FF4A4A4A"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
                                MaxWidth="180" />
                 </StackPanel>
             </Grid>
 
-            <DockPanel Grid.Row="2"
-                       LastChildFill="False"
-                       Margin="4,7,4,0">
-                <Button x:Name="AddButton"
-                        DockPanel.Dock="Left"
-                        Width="26"
-                        Style="{StaticResource ShelfButton}"
-                        Padding="0"
-                        Click="AddButton_Click" />
-                <Button x:Name="CollapseButton"
-                        DockPanel.Dock="Right"
-                        Width="26"
-                        Style="{StaticResource ShelfButton}"
-                        Padding="0"
-                        Click="CollapseButton_Click" />
-            </DockPanel>
         </Grid>
     </Border>
     </Grid>

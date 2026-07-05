@@ -10,10 +10,6 @@ public sealed class AppSettings
 
     public string TriggerMode { get; set; } = string.Empty;
 
-    public double ShelfWidth { get; set; } = 335;
-
-    public double ShelfHeight { get; set; } = 540;
-
     public string ShelfDockMode { get; set; } = "RightCenter";
 
     public string DataDirectoryPath { get; set; } = string.Empty;
