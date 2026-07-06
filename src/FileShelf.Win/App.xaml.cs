@@ -119,7 +119,8 @@ public partial class App : System.Windows.Application
 
         var settingsWindow = new SettingsWindow(
             _settings,
-            _settingsService)
+            _settingsService,
+            new StartupShortcutService())
         {
             ShowInTaskbar = false
         };

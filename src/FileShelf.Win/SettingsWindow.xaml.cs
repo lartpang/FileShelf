@@ -15,20 +15,26 @@ public partial class SettingsWindow : Window
 {
     private readonly AppSettings _settings;
     private readonly SettingsService _settingsService;
+    private readonly StartupShortcutService _startupShortcutService;
     private bool _isInitializing = true;
+    private bool _isUpdatingStartupCheckBox;
 
     public event EventHandler? LanguageChanged;
 
     public SettingsWindow(
         AppSettings settings,
-        SettingsService settingsService)
+        SettingsService settingsService,
+        StartupShortcutService startupShortcutService)
     {
         InitializeComponent();
 
         _settings = settings;
         _settingsService = settingsService;
+        _startupShortcutService = startupShortcutService;
 
         SelectLanguage(_settings.LanguageCode);
+        _settings.StartWithWindows = _startupShortcutService.IsEnabled();
+        SetStartupCheckBox(_settings.StartWithWindows);
         UpdatePathFields();
         ApplyLanguage();
 
@@ -64,6 +70,59 @@ public partial class SettingsWindow : Window
 
         DialogResult = true;
         Close();
+    }
+
+    private void StartupCheckBox_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing || _isUpdatingStartupCheckBox)
+        {
+            return;
+        }
+
+        var previous = _startupShortcutService.IsEnabled();
+        var enabled = StartupCheckBox.IsChecked == true;
+
+        try
+        {
+            _startupShortcutService.SetEnabled(enabled, LanguageCode);
+            _settings.StartWithWindows = enabled;
+            if (!SaveSettings())
+            {
+                _startupShortcutService.SetEnabled(previous, LanguageCode);
+                _settings.StartWithWindows = previous;
+                SetStartupCheckBox(previous);
+            }
+        }
+        catch (StartupShortcutConflictException ex)
+        {
+            _settings.StartWithWindows = previous;
+            SetStartupCheckBox(previous);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.FormatPath(LanguageCode, "StartupShortcutConflict", ex.ShortcutPath)}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        catch (StartupExecutablePathUnavailableException)
+        {
+            _settings.StartWithWindows = previous;
+            SetStartupCheckBox(previous);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.Get(LanguageCode, "StartupExecutablePathUnavailable")}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        catch (Exception ex)
+        {
+            _settings.StartWithWindows = previous;
+            SetStartupCheckBox(previous);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{ex.Message}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void DataPathTextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -115,7 +174,7 @@ public partial class SettingsWindow : Window
         var dialog = new SaveFileDialog
         {
             Title = UiText.Get(LanguageCode, "BrowseLogPath"),
-            Filter = "Log files (*.log)|*.log|All files (*.*)|*.*",
+            Filter = UiText.Get(LanguageCode, "LogFileFilter"),
             FileName = Path.GetFileName(currentLogPath),
             InitialDirectory = !string.IsNullOrWhiteSpace(currentLogDirectory) && Directory.Exists(currentLogDirectory)
                 ? currentLogDirectory
@@ -186,6 +245,8 @@ public partial class SettingsWindow : Window
         LanguageLabelTextBlock.Text = UiText.Get(LanguageCode, "Language");
         SetComboBoxItemText(UiText.English, UiText.Get(LanguageCode, "English"));
         SetComboBoxItemText(UiText.Chinese, UiText.Get(LanguageCode, "Chinese"));
+        StartupLabelTextBlock.Text = UiText.Get(LanguageCode, "Startup");
+        StartupCheckBox.Content = UiText.Get(LanguageCode, "StartWithWindows");
         DataLabelTextBlock.Text = UiText.Get(LanguageCode, "Data");
         LogLabelTextBlock.Text = UiText.Get(LanguageCode, "Log");
         DataBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseDataPath");
@@ -208,6 +269,13 @@ public partial class SettingsWindow : Window
     private void SelectLanguage(string languageCode)
     {
         SelectComboBoxTag(LanguageComboBox, languageCode);
+    }
+
+    private void SetStartupCheckBox(bool enabled)
+    {
+        _isUpdatingStartupCheckBox = true;
+        StartupCheckBox.IsChecked = enabled;
+        _isUpdatingStartupCheckBox = false;
     }
 
     private static void SelectComboBoxTag(WpfComboBox comboBox, string tag)

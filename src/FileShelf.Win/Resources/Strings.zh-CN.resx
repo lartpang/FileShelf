@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="AboutSubtitle" xml:space="preserve">
+    <value>轻量文件拖放暂存架</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>关于 FileShelf</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>添加文件</value>
+  </data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>添加文件夹</value>
+  </data>
+  <data name="AddToShelf" xml:space="preserve">
+    <value>添加到暂存架</value>
+  </data>
+  <data name="AlreadyStaged" xml:space="preserve">
+    <value>已在暂存架中</value>
+  </data>
+  <data name="BrowseDataPath" xml:space="preserve">
+    <value>选择数据文件夹</value>
+  </data>
+  <data name="BrowseLogPath" xml:space="preserve">
+    <value>选择日志文件</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="ClearShelf" xml:space="preserve">
+    <value>清空暂存架</value>
+  </data>
+  <data name="ClearUnpinned" xml:space="preserve">
+    <value>清空未固定项</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Collapse" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="CollapseToTray" xml:space="preserve">
+    <value>收起到托盘</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>数据</value>
+  </data>
+  <data name="Development" xml:space="preserve">
+    <value>开发</value>
+  </data>
+  <data name="DevelopmentValue" xml:space="preserve">
+    <value>C# / WPF 便携桌面程序</value>
+  </data>
+  <data name="DragAllFromCount" xml:space="preserve">
+    <value>拖动这里可拖出全部暂存项</value>
+  </data>
+  <data name="DragSelectionFromCount" xml:space="preserve">
+    <value>拖动这里可拖出所选暂存项</value>
+  </data>
+  <data name="DropFiles" xml:space="preserve">
+    <value>拖入文件</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="FileNotFound" xml:space="preserve">
+    <value>文件不存在</value>
+  </data>
+  <data name="GroupName" xml:space="preserve">
+    <value>{0} 个文件</value>
+  </data>
+  <data name="GroupSummary" xml:space="preserve">
+    <value>一组 {0} 个暂存路径</value>
+  </data>
+  <data name="Hide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="IconTooltip" xml:space="preserve">
+    <value>双击打开 FileShelf，拖入文件可暂存</value>
+  </data>
+  <data name="Item" xml:space="preserve">
+    <value>项</value>
+  </data>
+  <data name="ItemCount" xml:space="preserve">
+    <value>{0} 项</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>项</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>界面语言</value>
+  </data>
+  <data name="LeftBottom" xml:space="preserve">
+    <value>左侧，下方</value>
+  </data>
+  <data name="LeftCenter" xml:space="preserve">
+    <value>左侧，居中</value>
+  </data>
+  <data name="LeftTop" xml:space="preserve">
+    <value>左侧，上方</value>
+  </data>
+  <data name="Log" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="LogFileFilter" xml:space="preserve">
+    <value>日志文件 (*.log)|*.log|所有文件 (*.*)|*.*</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>模式</value>
+  </data>
+  <data name="NoValidFiles" xml:space="preserve">
+    <value>未找到可暂存文件</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="OpenAll" xml:space="preserve">
+    <value>打开全部</value>
+  </data>
+  <data name="OpenRelease" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="PathOnly" xml:space="preserve">
+    <value>文件保留在原处，FileShelf 只保存路径。</value>
+  </data>
+  <data name="Pin" xml:space="preserve">
+    <value>固定</value>
+  </data>
+  <data name="PortableTitle" xml:space="preserve">
+    <value>FileShelf（便携版）</value>
+  </data>
+  <data name="ReleaseToStage" xml:space="preserve">
+    <value>松开以暂存</value>
+  </data>
+  <data name="ReleaseToStageCount" xml:space="preserve">
+    <value>松开以暂存 {0} 项</value>
+  </data>
+  <data name="ReleaseToStageHint" xml:space="preserve">
+    <value>只记录路径，源文件保持原位。</value>
+  </data>
+  <data name="ReleaseToStageShort" xml:space="preserve">
+    <value>松开暂存</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="RemoveSelected" xml:space="preserve">
+    <value>移除所选项</value>
+  </data>
+  <data name="RestoreRemoved" xml:space="preserve">
+    <value>恢复最近移除</value>
+  </data>
+  <data name="RevealInExplorer" xml:space="preserve">
+    <value>在资源管理器中显示</value>
+  </data>
+  <data name="RightBottom" xml:space="preserve">
+    <value>右侧，下方</value>
+  </data>
+  <data name="RightCenter" xml:space="preserve">
+    <value>右侧，居中</value>
+  </data>
+  <data name="RightTop" xml:space="preserve">
+    <value>右侧，上方</value>
+  </data>
+  <data name="Runtime" xml:space="preserve">
+    <value>运行时</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Scope" xml:space="preserve">
+    <value>范围</value>
+  </data>
+  <data name="ScopeValue" xml:space="preserve">
+    <value>只保存路径；不复制、移动、删除源文件；不管理剪贴板。</value>
+  </data>
+  <data name="SelectAllForDragOut" xml:space="preserve">
+    <value>全选以拖出</value>
+  </data>
+  <data name="Selection" xml:space="preserve">
+    <value>已选 {0} 项 / 共 {1} 项</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="SettingsSaveFailed" xml:space="preserve">
+    <value>设置保存失败。</value>
+  </data>
+  <data name="SomeFilesMissing" xml:space="preserve">
+    <value>部分文件不存在</value>
+  </data>
+  <data name="SplitGroup" xml:space="preserve">
+    <value>拆分组</value>
+  </data>
+  <data name="StackSelected" xml:space="preserve">
+    <value>叠放所选项</value>
+  </data>
+  <data name="Startup" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="StartupExecutablePathUnavailable" xml:space="preserve">
+    <value>无法解析当前程序路径。</value>
+  </data>
+  <data name="StartupShortcutDescription" xml:space="preserve">
+    <value>随 Windows 启动 FileShelf。</value>
+  </data>
+  <data name="StartupUpdateFailed" xml:space="preserve">
+    <value>自启动设置失败。</value>
+  </data>
+  <data name="StartupShortcutConflict" xml:space="preserve">
+    <value>启动文件夹中已存在同名快捷方式，且它不属于 FileShelf，因此未做修改。
+{0}</value>
+  </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>随 Windows 启动</value>
+  </data>
+  <data name="TrayTooltip" xml:space="preserve">
+    <value>FileShelf - 当前暂存 {0} 项</value>
+  </data>
+  <data name="Unpin" xml:space="preserve">
+    <value>取消固定</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>发现新版本 {0}</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>检查更新失败</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="UpdateCurrent" xml:space="preserve">
+    <value>已是最新版本（{0}）</value>
+  </data>
+  <data name="UpdateNotConfigured" xml:space="preserve">
+    <value>未配置更新源</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>版本</value>
+  </data>
+</root>

@@ -152,6 +152,7 @@ public sealed class SettingsService
             DesignProfile = "YoinkEdge",
             EnableDragTrigger = false,
             TriggerMode = "Manual",
+            StartWithWindows = false,
             ShelfDockMode = "RightCenter"
         };
     }

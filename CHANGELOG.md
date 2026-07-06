@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.0 - Startup, Localization, and Release Metadata
+
+FileShelf v0.4.0 adds opt-in start-with-Windows support, moves UI text into resource-based localization, and compiles version/release metadata into the app so portable releases no longer need a visible sidecar metadata file.
+
+### Added
+
+- Added an opt-in start-with-Windows setting backed by a single removable current-user Startup shortcut.
+
+### Changed
+
+- Moved UI localization text into English and Chinese `.resx` resource files.
+- Moved app version and release metadata from `FileShelf.app.json` into compile-time assembly metadata.
+- Updated local and GitHub release publishing to stamp version and repository metadata into the assembly.
+
+### Removed
+
+- Removed sidecar `FileShelf.app.json` generation from portable publish output.
+- Removed the obsolete `FileShelf.app.example.json` sidecar metadata example.
+
 ## v0.3.0 - Interface Polish and Multi-Select
 
 ### Added

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="AboutSubtitle" xml:space="preserve">
+    <value>Lightweight file drag-and-drop shelf</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About FileShelf</value>
+  </data>
+  <data name="AddFiles" xml:space="preserve">
+    <value>Add Files</value>
+  </data>
+  <data name="AddFolder" xml:space="preserve">
+    <value>Add Folder</value>
+  </data>
+  <data name="AddToShelf" xml:space="preserve">
+    <value>Add to Shelf</value>
+  </data>
+  <data name="AlreadyStaged" xml:space="preserve">
+    <value>Already staged</value>
+  </data>
+  <data name="BrowseDataPath" xml:space="preserve">
+    <value>Choose data folder</value>
+  </data>
+  <data name="BrowseLogPath" xml:space="preserve">
+    <value>Choose log file</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="ClearShelf" xml:space="preserve">
+    <value>Clear shelf</value>
+  </data>
+  <data name="ClearUnpinned" xml:space="preserve">
+    <value>Clear Unpinned</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Collapse" xml:space="preserve">
+    <value>Collapse</value>
+  </data>
+  <data name="CollapseToTray" xml:space="preserve">
+    <value>Collapse to tray</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>Data</value>
+  </data>
+  <data name="Development" xml:space="preserve">
+    <value>Development</value>
+  </data>
+  <data name="DevelopmentValue" xml:space="preserve">
+    <value>C# / WPF portable desktop app</value>
+  </data>
+  <data name="DragAllFromCount" xml:space="preserve">
+    <value>Drag this handle to drag all staged items out</value>
+  </data>
+  <data name="DragSelectionFromCount" xml:space="preserve">
+    <value>Drag this handle to drag selected staged items out</value>
+  </data>
+  <data name="DropFiles" xml:space="preserve">
+    <value>Drop files here</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="FileNotFound" xml:space="preserve">
+    <value>File not found</value>
+  </data>
+  <data name="GroupName" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="GroupSummary" xml:space="preserve">
+    <value>{0} staged paths</value>
+  </data>
+  <data name="Hide" xml:space="preserve">
+    <value>Hide</value>
+  </data>
+  <data name="IconTooltip" xml:space="preserve">
+    <value>Double-click to open FileShelf; drop files to stage</value>
+  </data>
+  <data name="Item" xml:space="preserve">
+    <value>item</value>
+  </data>
+  <data name="ItemCount" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>items</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="LeftBottom" xml:space="preserve">
+    <value>Left, bottom</value>
+  </data>
+  <data name="LeftCenter" xml:space="preserve">
+    <value>Left, center</value>
+  </data>
+  <data name="LeftTop" xml:space="preserve">
+    <value>Left, top</value>
+  </data>
+  <data name="Log" xml:space="preserve">
+    <value>Log</value>
+  </data>
+  <data name="LogFileFilter" xml:space="preserve">
+    <value>Log files (*.log)|*.log|All files (*.*)|*.*</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="NoValidFiles" xml:space="preserve">
+    <value>No valid files</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="OpenAll" xml:space="preserve">
+    <value>Open All</value>
+  </data>
+  <data name="OpenRelease" xml:space="preserve">
+    <value>Open Release</value>
+  </data>
+  <data name="PathOnly" xml:space="preserve">
+    <value>Files stay in place. FileShelf only keeps paths.</value>
+  </data>
+  <data name="Pin" xml:space="preserve">
+    <value>Pin</value>
+  </data>
+  <data name="PortableTitle" xml:space="preserve">
+    <value>FileShelf (Portable)</value>
+  </data>
+  <data name="ReleaseToStage" xml:space="preserve">
+    <value>Release to stage</value>
+  </data>
+  <data name="ReleaseToStageCount" xml:space="preserve">
+    <value>Release to stage {0} {1}</value>
+  </data>
+  <data name="ReleaseToStageHint" xml:space="preserve">
+    <value>Only paths are stored. Source files stay in place.</value>
+  </data>
+  <data name="ReleaseToStageShort" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="RemoveSelected" xml:space="preserve">
+    <value>Remove Selected</value>
+  </data>
+  <data name="RestoreRemoved" xml:space="preserve">
+    <value>Restore Removed</value>
+  </data>
+  <data name="RevealInExplorer" xml:space="preserve">
+    <value>Reveal in Explorer</value>
+  </data>
+  <data name="RightBottom" xml:space="preserve">
+    <value>Right, bottom</value>
+  </data>
+  <data name="RightCenter" xml:space="preserve">
+    <value>Right, center</value>
+  </data>
+  <data name="RightTop" xml:space="preserve">
+    <value>Right, top</value>
+  </data>
+  <data name="Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Scope" xml:space="preserve">
+    <value>Scope</value>
+  </data>
+  <data name="ScopeValue" xml:space="preserve">
+    <value>Stores paths only; never copies, moves, or deletes source files; no clipboard management.</value>
+  </data>
+  <data name="SelectAllForDragOut" xml:space="preserve">
+    <value>Select all for drag-out</value>
+  </data>
+  <data name="Selection" xml:space="preserve">
+    <value>{0} selected / {1} {2}</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsSaveFailed" xml:space="preserve">
+    <value>Settings could not be saved.</value>
+  </data>
+  <data name="SomeFilesMissing" xml:space="preserve">
+    <value>Some files are missing</value>
+  </data>
+  <data name="SplitGroup" xml:space="preserve">
+    <value>Split Group</value>
+  </data>
+  <data name="StackSelected" xml:space="preserve">
+    <value>Stack Selected</value>
+  </data>
+  <data name="Startup" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="StartupExecutablePathUnavailable" xml:space="preserve">
+    <value>The current executable path could not be resolved.</value>
+  </data>
+  <data name="StartupShortcutDescription" xml:space="preserve">
+    <value>Launch FileShelf when Windows starts.</value>
+  </data>
+  <data name="StartupUpdateFailed" xml:space="preserve">
+    <value>Startup setting could not be updated.</value>
+  </data>
+  <data name="StartupShortcutConflict" xml:space="preserve">
+    <value>A startup shortcut with the same name already exists and does not belong to FileShelf, so no changes were made.
+{0}</value>
+  </data>
+  <data name="StartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="TrayTooltip" xml:space="preserve">
+    <value>FileShelf - {0} {1}</value>
+  </data>
+  <data name="Unpin" xml:space="preserve">
+    <value>Unpin</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>New version available: {0}</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Update check failed</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="UpdateCurrent" xml:space="preserve">
+    <value>Up to date ({0})</value>
+  </data>
+  <data name="UpdateNotConfigured" xml:space="preserve">
+    <value>Update source is not configured</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+</root>

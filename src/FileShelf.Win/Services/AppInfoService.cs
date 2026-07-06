@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
@@ -9,7 +8,6 @@ namespace FileShelf.Win.Services;
 
 public sealed class AppInfoService
 {
-    private const string AppInfoFileName = "FileShelf.app.json";
     private static readonly object UpdateCheckLock = new();
     private static readonly Dictionary<string, Lazy<Task<UpdateCheckResult>>> UpdateCheckTasks = new(StringComparer.OrdinalIgnoreCase);
     private readonly AppInfo _appInfo;
@@ -21,9 +19,7 @@ public sealed class AppInfoService
 
     public AppInfo Current => _appInfo;
 
-    public string DisplayVersion => !string.IsNullOrWhiteSpace(_appInfo.Version)
-        ? _appInfo.Version
-        : GetAssemblyVersion();
+    public string DisplayVersion => _appInfo.Version;
 
     public async Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default)
     {
@@ -105,33 +101,60 @@ public sealed class AppInfoService
 
     private static AppInfo LoadAppInfo()
     {
-        var appInfoPath = Path.Combine(AppContext.BaseDirectory, AppInfoFileName);
-        if (!File.Exists(appInfoPath))
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = GetAssemblyVersion(assembly);
+        var repository = NormalizeRepository(GetAssemblyMetadata(assembly, "RepositoryUrl"));
+        return new AppInfo
         {
-            return new AppInfo();
-        }
-
-        try
-        {
-            var json = File.ReadAllText(appInfoPath);
-            return JsonSerializer.Deserialize<AppInfo>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new AppInfo();
-        }
-        catch
-        {
-            return new AppInfo();
-        }
+            Version = version,
+            Tag = string.IsNullOrWhiteSpace(version) ? string.Empty : $"v{version}",
+            Repository = repository,
+            LatestReleaseApiUrl = string.IsNullOrWhiteSpace(repository)
+                ? string.Empty
+                : $"https://api.github.com/repos/{repository}/releases/latest",
+            LatestReleasePageUrl = string.IsNullOrWhiteSpace(repository)
+                ? string.Empty
+                : $"https://github.com/{repository}/releases/latest"
+        };
     }
 
-    private static string GetAssemblyVersion()
+    private static string GetAssemblyVersion(Assembly assembly)
     {
-        var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         return !string.IsNullOrWhiteSpace(informationalVersion)
             ? informationalVersion
             : assembly.GetName().Version?.ToString() ?? "0.0.0";
+    }
+
+    private static string GetAssemblyMetadata(Assembly assembly, string key)
+    {
+        return assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.OrdinalIgnoreCase))
+            ?.Value ?? string.Empty;
+    }
+
+    private static string NormalizeRepository(string repositoryUrl)
+    {
+        var value = repositoryUrl.Trim();
+        if (value.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value["https://github.com/".Length..];
+        }
+        else if (value.StartsWith("http://github.com/", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value["http://github.com/".Length..];
+        }
+
+        value = value.Trim('/');
+        if (value.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[..^4];
+        }
+
+        return value.Count(character => character == '/') == 1
+            ? value
+            : string.Empty;
     }
 
     private static string GetJsonString(JsonElement element, string propertyName)

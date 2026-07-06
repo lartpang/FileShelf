@@ -12,6 +12,8 @@ public sealed class AppSettings
 
     public string ShelfDockMode { get; set; } = "RightCenter";
 
+    public bool StartWithWindows { get; set; }
+
     public string DataDirectoryPath { get; set; } = string.Empty;
 
     public string LogFilePath { get; set; } = string.Empty;

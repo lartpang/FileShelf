@@ -11,10 +11,6 @@ if ([string]::IsNullOrWhiteSpace($Runtime) -or $Runtime -notmatch '^[A-Za-z0-9][
     throw "Runtime must be a runtime identifier, not a path: $Runtime"
 }
 
-if (-not [string]::IsNullOrWhiteSpace($Version) -and $Version -notmatch '^[0-9]+(\.[0-9]+){1,3}([\-+][A-Za-z0-9.-]+)?$') {
-    throw "Version must be numeric semantic version text, for example 1.2.3: $Version"
-}
-
 if (-not [string]::IsNullOrWhiteSpace($Repository) -and $Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
     throw "Repository must be owner/name, for example owner/FileShelf: $Repository"
 }
@@ -25,6 +21,19 @@ $outputPath = Join-Path $repoRoot "artifacts\FileShelf-portable-$Runtime"
 $resolvedOutputPath = [System.IO.Path]::GetFullPath($outputPath)
 $resolvedArtifactsPath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot "artifacts")).TrimEnd("\", "/")
 $artifactsRoot = $resolvedArtifactsPath + [System.IO.Path]::DirectorySeparatorChar
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $versionLines = & dotnet msbuild $projectPath -getProperty:Version
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not resolve project version from $projectPath"
+    }
+
+    $Version = ($versionLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1).Trim()
+}
+
+if ([string]::IsNullOrWhiteSpace($Version) -or $Version -notmatch '^[0-9]+(\.[0-9]+){1,3}([\-+][A-Za-z0-9.-]+)?$') {
+    throw "Version must be numeric semantic version text, for example 1.2.3: $Version"
+}
 
 if (-not $resolvedOutputPath.StartsWith($artifactsRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "Refusing to clean a path outside artifacts: $resolvedOutputPath"
@@ -48,9 +57,10 @@ $publishArgs = @(
     $resolvedOutputPath
 )
 
-if (-not [string]::IsNullOrWhiteSpace($Version)) {
-    $publishArgs += "/p:Version=$Version"
-    $publishArgs += "/p:InformationalVersion=$Version"
+$publishArgs += "/p:Version=$Version"
+$publishArgs += "/p:InformationalVersion=$Version"
+if (-not [string]::IsNullOrWhiteSpace($Repository)) {
+    $publishArgs += "/p:RepositoryUrl=https://github.com/$Repository"
 }
 
 dotnet @publishArgs
@@ -65,15 +75,5 @@ if (Test-Path -LiteralPath $statePath) {
 
 Get-ChildItem -LiteralPath $resolvedOutputPath -Filter "*.pdb" -File |
     Remove-Item -Force
-
-$appInfoPath = Join-Path $resolvedOutputPath "FileShelf.app.json"
-$appInfo = [ordered]@{
-    version = $Version
-    tag = $(if ([string]::IsNullOrWhiteSpace($Version)) { "" } else { "v$Version" })
-    repository = $Repository
-    latestReleaseApiUrl = $(if ([string]::IsNullOrWhiteSpace($Repository)) { "" } else { "https://api.github.com/repos/$Repository/releases/latest" })
-    latestReleasePageUrl = $(if ([string]::IsNullOrWhiteSpace($Repository)) { "" } else { "https://github.com/$Repository/releases/latest" })
-}
-$appInfo | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $appInfoPath -Encoding UTF8
 
 Write-Host "Portable build ready: $resolvedOutputPath"

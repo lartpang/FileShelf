@@ -1,10 +1,10 @@
 <Window x:Class="FileShelf.Win.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FileShelf (Portable)"
+        Title="FileShelf"
         Width="460"
-        Height="260"
-        MinHeight="252"
+        Height="292"
+        MinHeight="284"
         MinWidth="460"
         ResizeMode="CanResizeWithGrip"
         WindowStartupLocation="CenterScreen"
@@ -228,6 +228,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="74" />
@@ -235,10 +236,25 @@
                         <ColumnDefinition Width="36" />
                     </Grid.ColumnDefinitions>
 
+                    <TextBlock x:Name="StartupLabelTextBlock"
+                               Style="{StaticResource LabelText}" />
+                    <CheckBox x:Name="StartupCheckBox"
+                              Grid.Column="1"
+                              Grid.ColumnSpan="2"
+                              FontSize="11"
+                              Foreground="#FF141414"
+                              VerticalAlignment="Center"
+                              Checked="StartupCheckBox_CheckedChanged"
+                              Unchecked="StartupCheckBox_CheckedChanged" />
+
                     <TextBlock x:Name="DataLabelTextBlock"
+                               Grid.Row="1"
+                               Margin="0,8,0,0"
                                Style="{StaticResource LabelText}" />
                     <Grid Grid.Column="1"
-                          MinHeight="34">
+                          Grid.Row="1"
+                          MinHeight="34"
+                          Margin="0,8,0,0">
                         <Border Background="#FFFFFFFF"
                                 BorderBrush="#33141414"
                                 BorderThickness="1"
@@ -253,16 +269,18 @@
                                  LostFocus="DataPathTextBox_LostFocus" />
                     </Grid>
                     <Button x:Name="DataBrowseButton"
+                            Grid.Row="1"
                             Grid.Column="2"
+                            Margin="0,8,0,0"
                             Style="{StaticResource PathBrowseButton}"
                             Content="&#xE8B7;"
                             Click="DataBrowseButton_Click" />
 
                     <TextBlock x:Name="LogLabelTextBlock"
-                              Grid.Row="1"
+                              Grid.Row="2"
                                Margin="0,6,0,0"
                                Style="{StaticResource LabelText}" />
-                    <Grid Grid.Row="1"
+                    <Grid Grid.Row="2"
                           Grid.Column="1"
                           MinHeight="34"
                           Margin="0,6,0,0">
@@ -280,7 +298,7 @@
                                  LostFocus="LogPathTextBox_LostFocus" />
                     </Grid>
                     <Button x:Name="LogBrowseButton"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             Grid.Column="2"
                             Margin="0,6,0,0"
                             Style="{StaticResource PathBrowseButton}"

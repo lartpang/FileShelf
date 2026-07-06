@@ -23,17 +23,17 @@ out of scope.
 - Drag the floating folder icon to reposition it.
 - Drop files onto the floating folder icon to stage them; moving away cancels the interaction.
 - Show or collapse the Shelf panel from the tray icon.
-- Configure language and data path from Settings.
+- Configure language, startup behavior, and data path from Settings.
 
 ## Portability and safety
 
 - No installer is required.
-- No registry keys or startup entries are created.
+- No registry keys are created. Optional startup uses one current-user Startup shortcut and removes it when disabled.
 - Runtime state defaults to `FileShelfData` next to the executable.
 - Shelf state is stored as path metadata in `FileShelfData\shelf.json`; source files are not touched.
 - Removing an item from the Shelf only removes FileShelf's saved path metadata.
 - FileShelf does not register global hotkeys or mouse hooks.
-- Published builds can include `FileShelf.app.json` next to the executable for About version text and GitHub Release update checks.
+- About version text and GitHub Release update checks use metadata compiled into the assembly.
 
 ## Run
 
@@ -55,4 +55,5 @@ dotnet build FileShelf.sln
 
 The portable publish script writes a clean app folder under
 `artifacts\FileShelf-portable-win-x64` and excludes runtime `FileShelfData` state.
-Pass `-Version 0.2.0 -Repository lartpang/FileShelf` to stamp the About version and enable update checks from GitHub Releases.
+When `-Version` is omitted, it uses the project version from `Directory.Build.props`.
+Pass `-Version 0.4.0 -Repository lartpang/FileShelf` to stamp a specific About version and enable update checks from GitHub Releases.

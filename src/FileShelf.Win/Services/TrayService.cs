@@ -30,14 +30,14 @@ public sealed class TrayService : IDisposable
     public void Initialize()
     {
         var menu = new Forms.ContextMenuStrip();
-        _settingsMenuItem = menu.Items.Add("Settings", null, (_, _) => Dispatch(_showSettings));
-        _aboutMenuItem = menu.Items.Add("About", null, (_, _) => Dispatch(_showAbout));
+        _settingsMenuItem = menu.Items.Add(UiText.Get(UiText.English, "Settings"), null, (_, _) => Dispatch(_showSettings));
+        _aboutMenuItem = menu.Items.Add(UiText.Get(UiText.English, "About"), null, (_, _) => Dispatch(_showAbout));
         menu.Items.Add(new Forms.ToolStripSeparator());
-        _exitMenuItem = menu.Items.Add("Exit", null, (_, _) => Dispatch(_exit));
+        _exitMenuItem = menu.Items.Add(UiText.Get(UiText.English, "Exit"), null, (_, _) => Dispatch(_exit));
 
         _notifyIcon = new Forms.NotifyIcon
         {
-            Text = "FileShelf",
+            Text = UiText.FormatTrayTooltip(UiText.English, 0),
             Icon = LoadIcon(),
             ContextMenuStrip = menu,
             Visible = true
