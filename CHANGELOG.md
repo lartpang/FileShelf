@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.5.0 - Shelf Reliability and Recovery
+
+FileShelf v0.5.0 tightens the shelf workflow around applied settings, safer drag-out cleanup, missing-path recovery, and in-shelf ordering.
+
+### Added
+
+- Added applied Settings behavior: edits are staged until the user clicks Apply.
+- Added a Restore Original Defaults action in Settings.
+- Added Settings path validation before data and log paths are accepted.
+- Added an explicit data-path note that the current shelf state is saved to the selected data folder when applied.
+- Added single-instance activation so launching FileShelf again opens the running shelf.
+- Added drag reordering inside the shelf list.
+- Added visible shelf notices for add/skip results, reordering, removal, and missing-path updates.
+- Added staged-version checks so file and folder paths can be compared against their original staged state before drag-out.
+- Added a shelf check button for detecting changed or missing staged items.
+- Added floating drag hints for staging, drag-out, and in-shelf reordering.
+- Added a panel pin control so the shelf can stay open when focus changes.
+- Added missing-path actions to remove missing paths or relocate a missing file/folder.
+- Added confirmation for bulk selected removal and clearing unpinned items.
+
+### Changed
+
+- Changed duplicate adds to report how many paths were added and how many were skipped.
+- Changed drag-out cleanup to remove only paths that were actually sent; missing paths in partially valid groups are kept.
+- Changed drag-out to block external file drops when staged paths changed or went missing.
+- Changed folder version fingerprints to skip recursive traversal into reparse-point directories such as symbolic links, junctions, and mount points while still tracking the link entry itself.
+- Made shelf rows more compact with simplified file/folder/group markers.
+- Reset logging after the log path changes so a previous write failure does not permanently disable logging.
+
+### Fixed
+
+- Fixed selected shelf rows so all inline action buttons remain visible against the selected dark background.
+- Fixed shelf selection clearing so clicking empty panel/list space clears the current selection without requiring Ctrl-click.
+- Fixed the Settings Apply button hover state so it keeps the same dark-button interaction logic instead of fading into the background.
+- Fixed icon-mode drag prompts so the floating drag hint no longer gets clipped by the 64px icon window or overlaps the icon tooltip.
+
+### Removed
+
+- Removed obsolete trigger and dock settings fields that no longer represented active UI behavior.
+
 ## v0.4.0 - Startup, Localization, and Release Metadata
 
 FileShelf v0.4.0 adds opt-in start-with-Windows support, moves UI text into resource-based localization, and compiles version/release metadata into the app so portable releases no longer need a visible sidecar metadata file.

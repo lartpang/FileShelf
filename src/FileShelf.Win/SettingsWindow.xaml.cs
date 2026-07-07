@@ -16,10 +16,9 @@ public partial class SettingsWindow : Window
     private readonly AppSettings _settings;
     private readonly SettingsService _settingsService;
     private readonly StartupShortcutService _startupShortcutService;
+    private AppSettings _draftSettings;
     private bool _isInitializing = true;
     private bool _isUpdatingStartupCheckBox;
-
-    public event EventHandler? LanguageChanged;
 
     public SettingsWindow(
         AppSettings settings,
@@ -31,17 +30,14 @@ public partial class SettingsWindow : Window
         _settings = settings;
         _settingsService = settingsService;
         _startupShortcutService = startupShortcutService;
+        _draftSettings = _settings.Clone();
+        _draftSettings.StartWithWindows = _startupShortcutService.IsEnabled();
 
-        SelectLanguage(_settings.LanguageCode);
-        _settings.StartWithWindows = _startupShortcutService.IsEnabled();
-        SetStartupCheckBox(_settings.StartWithWindows);
-        UpdatePathFields();
-        ApplyLanguage();
-
+        RefreshControlsFromDraft();
         _isInitializing = false;
     }
 
-    private string LanguageCode => _settings.LanguageCode;
+    private string LanguageCode => _draftSettings.LanguageCode;
 
     private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -50,26 +46,80 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        _settings.LanguageCode = languageCode;
-        var saved = SaveSettings();
+        _draftSettings.LanguageCode = languageCode;
         ApplyLanguage();
-        if (saved)
-        {
-            LanguageChanged?.Invoke(this, EventArgs.Empty);
-        }
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        _settings.TriggerMode = "Manual";
-        _settings.EnableDragTrigger = false;
-        if (!SaveSettings())
+        if (!ValidateDraftSettings())
         {
+            return;
+        }
+
+        var previousSettings = _settings.Clone();
+        var previousStartup = _startupShortcutService.IsEnabled();
+        try
+        {
+            _startupShortcutService.SetEnabled(_draftSettings.StartWithWindows, LanguageCode);
+            _settings.CopyFrom(_draftSettings);
+            PortablePaths.Configure(_settings);
+            _settingsService.Save(_settings);
+        }
+        catch (StartupShortcutConflictException ex)
+        {
+            RestoreSettings(previousSettings, previousStartup);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.FormatPath(LanguageCode, "StartupShortcutConflict", ex.ShortcutPath)}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+        catch (StartupExecutablePathUnavailableException)
+        {
+            RestoreSettings(previousSettings, previousStartup);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.Get(LanguageCode, "StartupExecutablePathUnavailable")}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+        catch (Exception ex)
+        {
+            RestoreSettings(previousSettings, previousStartup);
+            System.Windows.MessageBox.Show(
+                $"{UiText.Get(LanguageCode, "SettingsSaveFailed")}\n\n{ex.Message}",
+                "FileShelf",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
             return;
         }
 
         DialogResult = true;
         Close();
+    }
+
+    private void RestoreSettings(AppSettings previousSettings, bool previousStartup)
+    {
+        try
+        {
+            _startupShortcutService.SetEnabled(previousStartup, previousSettings.LanguageCode);
+        }
+        catch
+        {
+            // Best-effort rollback; the original failure is shown to the user.
+        }
+
+        _settings.CopyFrom(previousSettings);
+        PortablePaths.Configure(_settings);
+    }
+
+    private void ResetDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        _draftSettings = SettingsService.CreateDefaultSettings();
+        RefreshControlsFromDraft();
     }
 
     private void StartupCheckBox_CheckedChanged(object sender, RoutedEventArgs e)
@@ -79,50 +129,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        var previous = _startupShortcutService.IsEnabled();
-        var enabled = StartupCheckBox.IsChecked == true;
-
-        try
-        {
-            _startupShortcutService.SetEnabled(enabled, LanguageCode);
-            _settings.StartWithWindows = enabled;
-            if (!SaveSettings())
-            {
-                _startupShortcutService.SetEnabled(previous, LanguageCode);
-                _settings.StartWithWindows = previous;
-                SetStartupCheckBox(previous);
-            }
-        }
-        catch (StartupShortcutConflictException ex)
-        {
-            _settings.StartWithWindows = previous;
-            SetStartupCheckBox(previous);
-            System.Windows.MessageBox.Show(
-                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.FormatPath(LanguageCode, "StartupShortcutConflict", ex.ShortcutPath)}",
-                "FileShelf",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
-        catch (StartupExecutablePathUnavailableException)
-        {
-            _settings.StartWithWindows = previous;
-            SetStartupCheckBox(previous);
-            System.Windows.MessageBox.Show(
-                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{UiText.Get(LanguageCode, "StartupExecutablePathUnavailable")}",
-                "FileShelf",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
-        catch (Exception ex)
-        {
-            _settings.StartWithWindows = previous;
-            SetStartupCheckBox(previous);
-            System.Windows.MessageBox.Show(
-                $"{UiText.Get(LanguageCode, "StartupUpdateFailed")}\n\n{ex.Message}",
-                "FileShelf",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
+        _draftSettings.StartWithWindows = StartupCheckBox.IsChecked == true;
     }
 
     private void DataPathTextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -151,8 +158,8 @@ public partial class SettingsWindow : Window
         {
             Description = UiText.Get(LanguageCode, "BrowseDataPath"),
             UseDescriptionForTitle = true,
-            SelectedPath = Directory.Exists(PortablePaths.DataDirectory)
-                ? PortablePaths.DataDirectory
+            SelectedPath = Directory.Exists(PortablePaths.GetDataDirectory(_draftSettings))
+                ? PortablePaths.GetDataDirectory(_draftSettings)
                 : AppContext.BaseDirectory
         };
 
@@ -161,15 +168,13 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        _settings.DataDirectoryPath = dialog.SelectedPath;
-        PortablePaths.Configure(_settings);
-        SaveSettings();
+        _draftSettings.DataDirectoryPath = dialog.SelectedPath;
         UpdatePathFields();
     }
 
     private void LogBrowseButton_Click(object sender, RoutedEventArgs e)
     {
-        var currentLogPath = PortablePaths.LogPath;
+        var currentLogPath = PortablePaths.GetLogPath(_draftSettings);
         var currentLogDirectory = Path.GetDirectoryName(currentLogPath);
         var dialog = new SaveFileDialog
         {
@@ -186,9 +191,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        _settings.LogFilePath = dialog.FileName;
-        PortablePaths.Configure(_settings);
-        SaveSettings();
+        _draftSettings.LogFilePath = dialog.FileName;
         UpdatePathFields();
     }
 
@@ -206,36 +209,62 @@ public partial class SettingsWindow : Window
         var path = editor.Text.Trim();
         if (isDataPath)
         {
-            _settings.DataDirectoryPath = path;
+            _draftSettings.DataDirectoryPath = path;
         }
         else
         {
-            _settings.LogFilePath = path;
+            _draftSettings.LogFilePath = path;
         }
 
-        PortablePaths.Configure(_settings);
-        SaveSettings();
         UpdatePathFields();
         editor.Visibility = Visibility.Collapsed;
         display.Visibility = Visibility.Visible;
     }
 
-    private bool SaveSettings()
+    private bool ValidateDraftSettings()
     {
         try
         {
-            _settingsService.Save(_settings);
+            var dataDirectory = PortablePaths.GetDataDirectory(_draftSettings);
+            Directory.CreateDirectory(dataDirectory);
+            EnsureDirectoryWritable(dataDirectory);
+
+            var logPath = PortablePaths.GetLogPath(_draftSettings);
+            if (Directory.Exists(logPath))
+            {
+                throw new IOException(UiText.Get(LanguageCode, "LogPathMustBeFile"));
+            }
+
+            var logDirectory = Path.GetDirectoryName(logPath);
+            if (string.IsNullOrWhiteSpace(logDirectory))
+            {
+                throw new IOException(UiText.Get(LanguageCode, "LogPathInvalid"));
+            }
+
+            Directory.CreateDirectory(logDirectory);
+            EnsureDirectoryWritable(logDirectory);
+            using var _ = new FileStream(logPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             System.Windows.MessageBox.Show(
-                $"{UiText.Get(LanguageCode, "SettingsSaveFailed")}\n\n{ex.Message}",
+                $"{UiText.Get(LanguageCode, "SettingsPathValidationFailed")}\n\n{ex.Message}",
                 "FileShelf",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             return false;
         }
+    }
+
+    private static void EnsureDirectoryWritable(string directory)
+    {
+        var testPath = Path.Combine(directory, $".fileshelf-write-test-{Guid.NewGuid():N}.tmp");
+        using (File.Create(testPath))
+        {
+        }
+
+        File.Delete(testPath);
     }
 
     private void ApplyLanguage()
@@ -248,20 +277,32 @@ public partial class SettingsWindow : Window
         StartupLabelTextBlock.Text = UiText.Get(LanguageCode, "Startup");
         StartupCheckBox.Content = UiText.Get(LanguageCode, "StartWithWindows");
         DataLabelTextBlock.Text = UiText.Get(LanguageCode, "Data");
+        DataPathHintTextBlock.Text = UiText.Get(LanguageCode, "DataPathApplyHint");
         LogLabelTextBlock.Text = UiText.Get(LanguageCode, "Log");
         DataBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseDataPath");
         LogBrowseButton.ToolTip = UiText.Get(LanguageCode, "BrowseLogPath");
         CancelButton.Content = UiText.Get(LanguageCode, "Cancel");
-        SaveButton.Content = UiText.Get(LanguageCode, "Save");
+        ResetDefaultsButton.Content = UiText.Get(LanguageCode, "RestoreDefaults");
+        SaveButton.Content = UiText.Get(LanguageCode, "Apply");
+    }
+
+    private void RefreshControlsFromDraft()
+    {
+        _isInitializing = true;
+        SelectLanguage(_draftSettings.LanguageCode);
+        SetStartupCheckBox(_draftSettings.StartWithWindows);
+        UpdatePathFields();
+        ApplyLanguage();
+        _isInitializing = false;
     }
 
     private void UpdatePathFields()
     {
-        DataPathTextBlock.Text = PortablePaths.ToDisplayPath(PortablePaths.DataDirectory);
+        DataPathTextBlock.Text = PortablePaths.ToDisplayPath(PortablePaths.GetDataDirectory(_draftSettings));
         DataPathTextBlock.ToolTip = DataPathTextBlock.Text;
         DataPathTextBox.Text = DataPathTextBlock.Text;
 
-        LogPathTextBlock.Text = PortablePaths.ToDisplayPath(PortablePaths.LogPath);
+        LogPathTextBlock.Text = PortablePaths.ToDisplayPath(PortablePaths.GetLogPath(_draftSettings));
         LogPathTextBlock.ToolTip = LogPathTextBlock.Text;
         LogPathTextBox.Text = LogPathTextBlock.Text;
     }
@@ -291,6 +332,7 @@ public partial class SettingsWindow : Window
 
         comboBox.SelectedIndex = 0;
     }
+
     private void SetComboBoxItemText(string languageCode, string text)
     {
         SetComboBoxItemText(LanguageComboBox, languageCode, text);

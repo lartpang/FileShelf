@@ -6,16 +6,6 @@ namespace FileShelf.Win.Services;
 
 public sealed class SettingsService
 {
-    private static readonly HashSet<string> ValidDockModes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "LeftTop",
-        "LeftCenter",
-        "LeftBottom",
-        "RightTop",
-        "RightCenter",
-        "RightBottom"
-    };
-
     private static readonly HashSet<string> ValidLanguages = new(StringComparer.OrdinalIgnoreCase)
     {
         UiText.English,
@@ -109,33 +99,10 @@ public sealed class SettingsService
     private void Normalize(AppSettings settings)
     {
         var changed = false;
-        if (!string.Equals(settings.TriggerMode, "Manual", StringComparison.OrdinalIgnoreCase))
-        {
-            settings.TriggerMode = "Manual";
-            changed = true;
-        }
-
-        if (settings.EnableDragTrigger)
-        {
-            settings.EnableDragTrigger = false;
-            changed = true;
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.DesignProfile))
-        {
-            settings.DesignProfile = "YoinkEdge";
-            changed = true;
-        }
 
         if (!ValidLanguages.Contains(settings.LanguageCode))
         {
             settings.LanguageCode = UiText.English;
-            changed = true;
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.ShelfDockMode) || !ValidDockModes.Contains(settings.ShelfDockMode))
-        {
-            settings.ShelfDockMode = "RightCenter";
             changed = true;
         }
 
@@ -145,15 +112,14 @@ public sealed class SettingsService
         }
     }
 
-    private static AppSettings CreateDefaultSettings()
+    public static AppSettings CreateDefaultSettings()
     {
         return new AppSettings
         {
-            DesignProfile = "YoinkEdge",
-            EnableDragTrigger = false,
-            TriggerMode = "Manual",
             StartWithWindows = false,
-            ShelfDockMode = "RightCenter"
+            LanguageCode = UiText.English,
+            DataDirectoryPath = string.Empty,
+            LogFilePath = string.Empty
         };
     }
 }

@@ -67,9 +67,19 @@ public static class UiText
     {
         return key switch
         {
-            "ReleaseToStageCount" => Format(languageCode, key, count, Get(languageCode, count == 1 ? "Item" : "Items")),
+            "ReleaseToStageCount" or "AddedToShelfCount" => Format(languageCode, key, count, Get(languageCode, count == 1 ? "Item" : "Items")),
             _ => Get(languageCode, key)
         };
+    }
+
+    public static string FormatAddResult(string languageCode, int addedCount, int skippedCount)
+    {
+        return Format(languageCode, "AddedSkipped", addedCount, skippedCount);
+    }
+
+    public static string FormatShelfCheck(string languageCode, int changedCount, int missingCount)
+    {
+        return Format(languageCode, "ShelfVersionsChanged", changedCount, missingCount);
     }
 
     public static string FormatVersion(string languageCode, string key, string version)

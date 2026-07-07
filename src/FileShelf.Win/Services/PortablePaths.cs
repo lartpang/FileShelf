@@ -21,8 +21,19 @@ public static class PortablePaths
 
     public static void Configure(AppSettings settings)
     {
-        DataDirectory = ResolvePath(settings.DataDirectoryPath, DefaultDataDirectory);
-        LogPath = ResolvePath(settings.LogFilePath, Path.Combine(DataDirectory, "logs", "fileshelf.log"));
+        DataDirectory = GetDataDirectory(settings);
+        LogPath = GetLogPath(settings);
+    }
+
+    public static string GetDataDirectory(AppSettings settings)
+    {
+        return ResolvePath(settings.DataDirectoryPath, DefaultDataDirectory);
+    }
+
+    public static string GetLogPath(AppSettings settings)
+    {
+        var dataDirectory = GetDataDirectory(settings);
+        return ResolvePath(settings.LogFilePath, Path.Combine(dataDirectory, "logs", "fileshelf.log"));
     }
 
     public static string ToDisplayPath(string path)

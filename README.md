@@ -8,7 +8,23 @@
   A portable Windows file shelf for temporarily staging files and folders between Explorer windows or applications.
 </p>
 
+<p align="center">
+  English | <a href="README_zh.md">简体中文</a>
+</p>
+
+FileShelf is a small always-on-top shelf for paths you need again soon. Drop files or folders into it, keep them visible, then drag them out into another Explorer window or application.
+
 FileShelf stores file paths only. It does not copy, move, delete, modify, upload, or read file contents, and it does not manage clipboard history.
+
+## Basic Use
+
+1. Start `FileShelf.Win.exe`. FileShelf opens as a floating folder icon near the edge of the screen and also appears in the system tray.
+2. Add files or folders by dragging them from Explorer onto the floating icon or the opened shelf panel. You can also open the panel and use the `+` button to add files or a folder manually.
+3. Open the shelf when you need the staged paths: double-click the floating icon, or left-click the tray icon.
+4. Drag items out of FileShelf into Explorer or another app. You can drag a single item, selected items, or the item-count handle at the top of the shelf.
+5. After a successful drag-out, unpinned entries are removed from FileShelf only. The original files and folders stay where they are.
+
+The intended workflow is simple: collect paths, keep them ready, drag them to the next place. Use pinning only for entries you want to keep after drag-out or clear operations.
 
 ## How It Feels
 
@@ -49,12 +65,15 @@ FileShelf.Win.exe
 
 No installation is required. Runtime data is stored beside the executable by default, so the app folder can be moved as a portable package.
 
-### Typical Workflow
+### Everyday Workflow
 
-1. Drop one or more files or folders onto the floating folder icon, or double-click the icon and drop files into the shelf panel.
-2. Double-click the floating icon to open the shelf panel when you need staged files.
-3. Drag a staged item, selected items, or the item-count handle out of FileShelf.
-4. Drop them into the target application. The panel collapses back to the floating icon when focus moves away.
+Use FileShelf as a temporary handoff area:
+
+1. Put paths in: drag files or folders onto the floating folder icon, or open the shelf and drop them into the panel.
+2. Keep context: leave the shelf collapsed as the floating icon while you work elsewhere.
+3. Take paths out: open the shelf and drag the needed item, selection, group, or count handle into the target app.
+
+Files dropped together become one shelf group. Dragging that group out sends all paths in the group together. If you need separate handling later, use the item context menu to split the group.
 
 ### Controls
 
@@ -64,8 +83,11 @@ No installation is required. Runtime data is stored beside the executable by def
 - Focus change: collapse the shelf panel back to the floating icon.
 - Tray left click: open or collapse the shelf panel.
 - Tray right click: open Settings, About, or Exit.
-- Shelf `+` button: add files or folders manually, or open shelf actions.
-- Item context menu: open, reveal in Explorer, pin/unpin, stack, split, or remove.
+- Shelf `+` button: add files or folders manually, select all for drag-out, restore recently removed entries, or clear unpinned entries.
+- Item click: select an item for batch drag-out or item actions.
+- Item drag: drag that item, or the current selection, out to another app.
+- Item-count handle: drag selected items out; when nothing is selected, drag every staged item out.
+- Item context menu: open, reveal in Explorer, pin/unpin, stack selected items, split a group, or remove.
 
 ### Safety and Portability
 
@@ -120,13 +142,13 @@ When `-Version` is omitted, it uses the project version from `Directory.Build.pr
 To stamp a specific app version:
 
 ```powershell
-.\scripts\publish-portable.ps1 -Version 0.4.0
+.\scripts\publish-portable.ps1 -Version 0.5.0
 ```
 
 To enable About-window update checks against GitHub Releases:
 
 ```powershell
-.\scripts\publish-portable.ps1 -Version 0.4.0 -Repository lartpang/FileShelf
+.\scripts\publish-portable.ps1 -Version 0.5.0 -Repository lartpang/FileShelf
 ```
 
 The version and repository metadata are compiled into the app assembly.
@@ -149,8 +171,8 @@ This repository includes a workflow that publishes a portable Windows zip when a
 Use semantic version tags:
 
 ```powershell
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 The workflow will:
@@ -158,11 +180,11 @@ The workflow will:
 1. Check out the tagged source.
 2. Install .NET 10.x on a Windows runner.
 3. Restore and publish `FileShelf.Win` for `win-x64`.
-4. Stamp the app version from the tag into the assembly, for example `v0.4.0` -> `0.4.0`.
+4. Stamp the app version from the tag into the assembly, for example `v0.5.0` -> `0.5.0`.
 5. Zip the clean portable output.
 6. Create a GitHub Release and upload the zip asset.
 
-You can also run the workflow manually from GitHub Actions with an existing tag such as `v0.4.0`.
+You can also run the workflow manually from GitHub Actions with an existing tag such as `v0.5.0`.
 
 If release creation fails with a permission error, open the GitHub repository settings and ensure Actions can create releases. The workflow itself requests only `contents: write`.
 

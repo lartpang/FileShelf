@@ -24,6 +24,14 @@ public sealed class LoggerService
         Write("ERROR", text);
     }
 
+    public void Reset()
+    {
+        lock (_syncRoot)
+        {
+            _enabled = true;
+        }
+    }
+
     private void Write(string level, string message)
     {
         lock (_syncRoot)

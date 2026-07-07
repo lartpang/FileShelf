@@ -50,6 +50,7 @@ public sealed class ShelfStateService
                 {
                     Path = item.Path,
                     Paths = item.FilePaths.ToArray(),
+                    Versions = item.PathVersions.ToArray(),
                     IsPinned = item.IsPinned,
                     AddedAt = item.AddedAt
                 })
@@ -70,12 +71,12 @@ public sealed class ShelfStateService
     {
         if (record.Paths is { Length: > 0 })
         {
-            return ShelfItem.FromPaths(record.Paths, record.IsPinned, record.AddedAt);
+            return ShelfItem.FromPaths(record.Paths, record.IsPinned, record.AddedAt, record.Versions);
         }
 
         return string.IsNullOrWhiteSpace(record.Path)
             ? null
-            : ShelfItem.FromPath(record.Path, record.IsPinned, record.AddedAt);
+            : ShelfItem.FromPath(record.Path, record.IsPinned, record.AddedAt, record.Versions);
     }
 
     private void BackupBrokenState(string statePath)
@@ -102,6 +103,8 @@ public sealed class ShelfStateService
         public string? Path { get; set; }
 
         public string[]? Paths { get; set; }
+
+        public PathVersion[]? Versions { get; set; }
 
         public bool IsPinned { get; set; }
 

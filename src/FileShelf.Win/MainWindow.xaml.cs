@@ -24,6 +24,7 @@ namespace FileShelf.Win;
 
 public partial class MainWindow : Window
 {
+    private const string ShelfReorderDataFormat = "FileShelf.ShelfReorder";
     private const double IconWindowSize = 64;
     private const double IconSurfaceSize = 52;
     private const double DefaultPanelWidth = 335;
@@ -51,9 +52,11 @@ public partial class MainWindow : Window
     private bool _isHidingToTray;
     private bool _isDragActive;
     private bool _isPanelOpen;
+    private bool _isPanelPinned;
     private bool _isIconMouseDown;
     private bool _isDraggingIcon;
     private bool _isDraggingOut;
+    private bool _didReorderDuringDrag;
     private bool _hasIconPosition;
     private int _dropNoticeToken;
     private int _hideAnimationToken;
@@ -67,6 +70,7 @@ public partial class MainWindow : Window
     private WpfPoint _dragStartPoint;
     private WpfPoint _iconDragStartScreenPoint;
     private ShelfItem? _dragItem;
+    private ShelfItem[] _activeReorderItems = Array.Empty<ShelfItem>();
     private ShelfItem[] _dragSelectionSnapshot = Array.Empty<ShelfItem>();
 
     public MainWindow(
@@ -379,6 +383,8 @@ public partial class MainWindow : Window
     public void ApplyLanguage()
     {
         Title = UiText.Get(_settings.LanguageCode, "PortableTitle");
+        PanelPinButton.ToolTip = UiText.Get(_settings.LanguageCode, _isPanelPinned ? "UnpinPanel" : "PinPanel");
+        CheckShelfButton.ToolTip = UiText.Get(_settings.LanguageCode, "CheckShelfVersions");
         AddButton.FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets");
         AddButton.Content = "\uE710";
         AddButton.ToolTip = UiText.Get(_settings.LanguageCode, "AddToShelf");
@@ -401,11 +407,19 @@ public partial class MainWindow : Window
 
     public void ClearShelf()
     {
-        var removed = RemoveShelfItemsAsBatch(Items.Where(item => !item.IsPinned).ToArray());
+        var itemsToRemove = Items.Where(item => !item.IsPinned).ToArray();
+        if (itemsToRemove.Length == 0 || !ConfirmShelfAction("ConfirmClearUnpinned"))
+        {
+            return;
+        }
+
+        var removed = RemoveShelfItemsAsBatch(itemsToRemove);
         if (removed > 0)
         {
             _logger.Info($"Shelf clear removed unpinned items; removedCount={removed}; totalCount={Items.Count}");
             PersistShelf();
+            UpdateEmptyState();
+            ShowNotice(UiText.Get(_settings.LanguageCode, "ShelfItemsRemoved"));
         }
     }
 
@@ -450,7 +464,7 @@ public partial class MainWindow : Window
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (_isPanelOpen && !_isDraggingOut)
+        if (_isPanelOpen && !_isDraggingOut && !_isPanelPinned)
         {
             HideToTray();
         }
@@ -664,6 +678,31 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void PanelPinButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isPanelPinned = !_isPanelPinned;
+        PanelPinButton.Content = _isPanelPinned ? "\uE77A" : "\uE718";
+        PanelPinButton.Background = new SolidColorBrush(_isPanelPinned
+            ? System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14)
+            : System.Windows.Media.Color.FromArgb(0x0F, 0x00, 0x00, 0x00));
+        PanelPinButton.Foreground = new SolidColorBrush(_isPanelPinned ? Colors.White : System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x14));
+        PanelPinButton.ToolTip = UiText.Get(_settings.LanguageCode, _isPanelPinned ? "UnpinPanel" : "PinPanel");
+        ShowNotice(UiText.Get(_settings.LanguageCode, _isPanelPinned ? "PanelPinned" : "PanelUnpinned"));
+        e.Handled = true;
+    }
+
+    private void CheckShelfButton_Click(object sender, RoutedEventArgs e)
+    {
+        var result = RefreshAllVersionState();
+        var message = result.ChangedCount == 0 && result.MissingCount == 0
+            ? UiText.Get(_settings.LanguageCode, "ShelfVersionsUnchanged")
+            : UiText.FormatShelfCheck(_settings.LanguageCode, result.ChangedCount, result.MissingCount);
+        ShowNotice(message);
+        _logger.Info($"Shelf versions checked; changedCount={result.ChangedCount}; missingCount={result.MissingCount}");
+        UpdateEmptyState();
+        e.Handled = true;
+    }
+
     private void ShowShelfActionMenu(UIElement placementTarget)
     {
         var menu = new WpfContextMenu
@@ -707,6 +746,18 @@ public partial class MainWindow : Window
             menu.Items.Add(restoreItem);
         }
 
+        RefreshAllItemExistence();
+        if (Items.Any(item => item.HasMissingPaths))
+        {
+            menu.Items.Add(new WpfSeparator());
+            var removeMissingItem = new WpfMenuItem
+            {
+                Header = UiText.Get(_settings.LanguageCode, "RemoveMissingPaths")
+            };
+            removeMissingItem.Click += (_, _) => RemoveMissingPathsFromShelf();
+            menu.Items.Add(removeMissingItem);
+        }
+
         if (Items.Any(item => !item.IsPinned))
         {
             menu.Items.Add(new WpfSeparator());
@@ -728,13 +779,36 @@ public partial class MainWindow : Window
             return;
         }
 
-        RemoveShelfItems(GetSelectedItemsForAction(item));
+        var actionItems = GetSelectedItemsForAction(item);
+        RemoveShelfItems(actionItems, requireConfirmation: actionItems.Length > 1);
         e.Handled = true;
     }
 
     private void ShelfList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         UpdateEmptyState();
+    }
+
+    private void ShelfList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (FindVisualAncestor<System.Windows.Controls.ListBoxItem>(e.OriginalSource as DependencyObject) is not null ||
+            IsInsideButton(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        ClearShelfSelection();
+    }
+
+    private void ShelfBackground_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (FindVisualAncestor<System.Windows.Controls.ListBoxItem>(e.OriginalSource as DependencyObject) is not null ||
+            IsInsideButton(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
+        ClearShelfSelection();
     }
 
     private void ShelfList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -753,7 +827,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        RemoveShelfItems(selectedItems);
+        RemoveShelfItems(selectedItems, requireConfirmation: selectedItems.Length > 1);
         e.Handled = true;
     }
 
@@ -761,6 +835,18 @@ public partial class MainWindow : Window
     {
         ShelfList.SelectAll();
         ShelfList.Focus();
+        UpdateEmptyState();
+    }
+
+    private void ClearShelfSelection()
+    {
+        if (ShelfList.SelectedItems.Count == 0)
+        {
+            return;
+        }
+
+        ShelfList.SelectedItems.Clear();
+        Keyboard.ClearFocus();
         UpdateEmptyState();
     }
 
@@ -793,6 +879,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        item.RefreshExists();
         var menu = new WpfContextMenu();
         var openItem = new WpfMenuItem
         {
@@ -838,6 +925,30 @@ public partial class MainWindow : Window
             menu.Items.Add(splitGroupItem);
         }
 
+        if (item.HasMissingPaths)
+        {
+            var removeMissingItem = new WpfMenuItem
+            {
+                Header = UiText.Get(_settings.LanguageCode, "RemoveMissingPaths")
+            };
+            removeMissingItem.Click += (_, _) => RemoveMissingPaths(item);
+            menu.Items.Add(removeMissingItem);
+
+            var repairFileItem = new WpfMenuItem
+            {
+                Header = UiText.Get(_settings.LanguageCode, "RepairMissingFile")
+            };
+            repairFileItem.Click += (_, _) => RepairMissingPath(item, chooseFolder: false);
+            menu.Items.Add(repairFileItem);
+
+            var repairFolderItem = new WpfMenuItem
+            {
+                Header = UiText.Get(_settings.LanguageCode, "RepairMissingFolder")
+            };
+            repairFolderItem.Click += (_, _) => RepairMissingPath(item, chooseFolder: true);
+            menu.Items.Add(repairFolderItem);
+        }
+
         if (ShelfList.SelectedItems.OfType<ShelfItem>().Count() >= 2)
         {
             var stackSelectedItem = new WpfMenuItem
@@ -855,7 +966,7 @@ public partial class MainWindow : Window
                 ? UiText.Get(_settings.LanguageCode, "RemoveSelected")
                 : UiText.Get(_settings.LanguageCode, "Remove")
         };
-        removeItem.Click += (_, _) => RemoveShelfItems(actionItems);
+        removeItem.Click += (_, _) => RemoveShelfItems(actionItems, requireConfirmation: actionItems.Length > 1);
         menu.Items.Add(removeItem);
 
         menu.PlacementTarget = sender as UIElement;
@@ -872,31 +983,42 @@ public partial class MainWindow : Window
         }
 
         ApplyDropVisualState(e.Effects != System.Windows.DragDropEffects.None, GetDraggedPathCount(e));
+        ShowDragHint(GetDragHintText(e), e.GetPosition(this));
     }
 
     private void Window_DragOver(object sender, WpfDragEventArgs e)
     {
         ApplyDragEffects(e);
         ApplyDropVisualState(e.Effects != System.Windows.DragDropEffects.None, GetDraggedPathCount(e));
+        ShowDragHint(GetDragHintText(e), e.GetPosition(this));
     }
 
     private void Window_DragLeave(object sender, WpfDragEventArgs e)
     {
         ApplyDropVisualState(false);
+        HideDragHint();
     }
 
     private void Window_Drop(object sender, WpfDragEventArgs e)
     {
         ApplyDropVisualState(false);
-        var paths = _dragDropService.ExtractFilePaths(e.Data);
-        var added = AddPathsAsShelfItem(paths);
+        HideDragHint();
+        if (e.Data.GetDataPresent(ShelfReorderDataFormat))
+        {
+            ReorderDraggedShelfItems(e);
+            return;
+        }
 
-        _logger.Info($"Files dropped; addedCount={added}; totalCount={Items.Count}");
-        if (added > 0)
+        var paths = _dragDropService.ExtractFilePaths(e.Data);
+        var result = AddPathsAsShelfItem(paths);
+
+        _logger.Info($"Files dropped; addedCount={result.AddedCount}; skippedCount={result.SkippedCount}; totalCount={Items.Count}");
+        if (result.AddedCount > 0)
         {
             CancelDropNotice();
             PersistShelf();
             UpdateEmptyState();
+            ShowAddResult(result);
         }
         else
         {
@@ -936,7 +1058,7 @@ public partial class MainWindow : Window
         }
 
         var dragItems = GetDragItems();
-        DragShelfItems(dragItems);
+        DragShelfItems(dragItems, allowReorder: true);
         _dragItem = null;
         _dragSelectionSnapshot = Array.Empty<ShelfItem>();
     }
@@ -974,11 +1096,11 @@ public partial class MainWindow : Window
         }
 
         _dragAllFromCount = false;
-        DragShelfItems(GetCountHandleDragItems());
+        DragShelfItems(GetCountHandleDragItems(), allowReorder: false);
         e.Handled = true;
     }
 
-    private void DragShelfItems(ShelfItem[] dragItems)
+    private void DragShelfItems(ShelfItem[] dragItems, bool allowReorder)
     {
         if (dragItems.Length == 0)
         {
@@ -987,40 +1109,76 @@ public partial class MainWindow : Window
 
         foreach (var item in dragItems)
         {
-            item.RefreshExists();
+            item.RefreshVersionState();
+        }
+
+        var consistency = GetVersionCheckResult(dragItems);
+        var canDragOut = consistency.ChangedCount == 0 && consistency.MissingCount == 0;
+        if (!canDragOut && !allowReorder)
+        {
+            ShowNotice(UiText.Get(_settings.LanguageCode, "DragOutBlockedByVersion"));
+            ShowDragHint(UiText.Get(_settings.LanguageCode, "DragOutBlockedByVersion"), _dragStartPoint);
+            return;
         }
 
         var paths = dragItems
             .SelectMany(item => item.FilePaths)
-            .Where(path => File.Exists(path) || Directory.Exists(path))
+            .Where(path => canDragOut && (File.Exists(path) || Directory.Exists(path)))
             .ToArray();
 
-        if (paths.Length == 0)
+        if (paths.Length == 0 && !allowReorder)
         {
             _logger.Warning("Drag-out skipped; no selected items exist");
             return;
         }
 
-        var data = _dragDropService.CreateFileDropData(paths);
+        var data = paths.Length > 0
+            ? _dragDropService.CreateFileDropData(paths)
+            : new System.Windows.DataObject();
+        if (allowReorder)
+        {
+            data.SetData(ShelfReorderDataFormat, true);
+            _activeReorderItems = dragItems;
+            _didReorderDuringDrag = false;
+        }
+
+        ShowDragHint(
+            canDragOut
+                ? UiText.Get(_settings.LanguageCode, allowReorder ? "DragOutOrReorderHint" : "DragOutHint")
+                : UiText.Get(_settings.LanguageCode, "ReorderOnlyChangedHint"),
+            _dragStartPoint);
         _isDraggingOut = true;
         var effect = System.Windows.DragDropEffects.None;
         try
         {
-            effect = System.Windows.DragDrop.DoDragDrop(this, data, System.Windows.DragDropEffects.Copy);
+            var allowedEffects = allowReorder && canDragOut
+                ? System.Windows.DragDropEffects.Copy | System.Windows.DragDropEffects.Move
+                : allowReorder
+                ? System.Windows.DragDropEffects.Move
+                : System.Windows.DragDropEffects.Copy;
+            effect = System.Windows.DragDrop.DoDragDrop(this, data, allowedEffects);
         }
         finally
         {
             _isDraggingOut = false;
+            _activeReorderItems = Array.Empty<ShelfItem>();
+            HideDragHint();
+        }
+
+        if (_didReorderDuringDrag)
+        {
+            UpdateEmptyState();
+            return;
         }
 
         if (effect != System.Windows.DragDropEffects.None)
         {
-            RemoveDraggedOutItems(dragItems);
+            RemoveDraggedOutItems(dragItems, paths);
         }
 
         UpdateEmptyState();
         _logger.Info($"Drag-out completed; itemCount={paths.Length}; effect={effect}");
-        if (!IsActive && _isPanelOpen)
+        if (!IsActive && _isPanelOpen && !_isPanelPinned)
         {
             HideToTray();
         }
@@ -1064,12 +1222,162 @@ public partial class MainWindow : Window
         return selectedItems.Length > 0 ? selectedItems : Items.ToArray();
     }
 
+    private ShelfVersionCheckResult RefreshAllVersionState()
+    {
+        foreach (var item in Items)
+        {
+            item.RefreshVersionState();
+        }
+
+        return GetVersionCheckResult(Items);
+    }
+
+    private static ShelfVersionCheckResult GetVersionCheckResult(IEnumerable<ShelfItem> items)
+    {
+        var changedCount = 0;
+        var missingCount = 0;
+        foreach (var item in items)
+        {
+            if (item.HasChangedPaths)
+            {
+                changedCount++;
+            }
+
+            if (item.HasMissingPaths)
+            {
+                missingCount++;
+            }
+        }
+
+        return new ShelfVersionCheckResult(changedCount, missingCount);
+    }
+
+    private void ReorderDraggedShelfItems(WpfDragEventArgs e)
+    {
+        var movingItems = _activeReorderItems
+            .Where(Items.Contains)
+            .Distinct()
+            .ToArray();
+        if (movingItems.Length == 0)
+        {
+            e.Effects = System.Windows.DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        var targetIndex = GetDropTargetIndex(e);
+        var insertIndex = Items
+            .Take(targetIndex)
+            .Count(item => !movingItems.Contains(item));
+        foreach (var item in movingItems)
+        {
+            Items.Remove(item);
+        }
+
+        insertIndex = Math.Clamp(insertIndex, 0, Items.Count);
+        foreach (var item in movingItems)
+        {
+            Items.Insert(insertIndex, item);
+            insertIndex++;
+        }
+
+        ShelfList.SelectedItems.Clear();
+        foreach (var item in movingItems)
+        {
+            ShelfList.SelectedItems.Add(item);
+        }
+
+        _didReorderDuringDrag = true;
+        e.Effects = System.Windows.DragDropEffects.Move;
+        e.Handled = true;
+        _logger.Info($"Shelf items reordered; movedCount={movingItems.Length}; totalCount={Items.Count}");
+        PersistShelf();
+        UpdateEmptyState();
+        ShowNotice(UiText.Get(_settings.LanguageCode, "ShelfOrderUpdated"));
+    }
+
+    private int GetDropTargetIndex(WpfDragEventArgs e)
+    {
+        var itemContainer = FindVisualAncestor<System.Windows.Controls.ListBoxItem>(e.OriginalSource as DependencyObject);
+        if (itemContainer?.DataContext is not ShelfItem targetItem)
+        {
+            return Items.Count;
+        }
+
+        var targetIndex = Items.IndexOf(targetItem);
+        if (targetIndex < 0)
+        {
+            return Items.Count;
+        }
+
+        var position = e.GetPosition(itemContainer);
+        return position.Y > itemContainer.ActualHeight / 2
+            ? targetIndex + 1
+            : targetIndex;
+    }
+
+    private static T? FindVisualAncestor<T>(DependencyObject? source)
+        where T : DependencyObject
+    {
+        while (source is not null)
+        {
+            if (source is T match)
+            {
+                return match;
+            }
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+
+        return null;
+    }
+
     private void ApplyDragEffects(WpfDragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop)
+        e.Effects = e.Data.GetDataPresent(ShelfReorderDataFormat)
+            ? System.Windows.DragDropEffects.Move
+            : e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop)
             ? System.Windows.DragDropEffects.Copy
             : System.Windows.DragDropEffects.None;
         e.Handled = true;
+    }
+
+    private string GetDragHintText(WpfDragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(ShelfReorderDataFormat))
+        {
+            return UiText.Get(_settings.LanguageCode, "DropToReorderHint");
+        }
+
+        var count = GetDraggedPathCount(e);
+        return count > 0
+            ? UiText.FormatCount(_settings.LanguageCode, "ReleaseToStageCount", count)
+            : UiText.Get(_settings.LanguageCode, "NoValidFiles");
+    }
+
+    private void ShowDragHint(string text, WpfPoint position)
+    {
+        if (!_isPanelOpen)
+        {
+            HideDragHint();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            HideDragHint();
+            return;
+        }
+
+        DragHintTextBlock.Text = text;
+        DragHint.Visibility = Visibility.Visible;
+        System.Windows.Controls.Canvas.SetLeft(DragHint, position.X + 14);
+        System.Windows.Controls.Canvas.SetTop(DragHint, position.Y + 14);
+    }
+
+    private void HideDragHint()
+    {
+        DragHint.Visibility = Visibility.Collapsed;
     }
 
     private void ApplyDropVisualState(bool isActive, int draggedPathCount = 0, bool force = false)
@@ -1082,6 +1390,8 @@ public partial class MainWindow : Window
         _isDragActive = isActive;
         if (!_isPanelOpen)
         {
+            HideDragHint();
+            IconShell.ToolTip = isActive ? null : UiText.Get(_settings.LanguageCode, "IconTooltip");
             IconShell.Width = isActive ? 58 : IconSurfaceSize;
             IconShell.Height = isActive ? 58 : IconSurfaceSize;
             IconShell.Background = new SolidColorBrush(Colors.Transparent);
@@ -1138,8 +1448,8 @@ public partial class MainWindow : Window
 
         if (Items.Count > 0)
         {
-            AddButton.Visibility = Visibility.Visible;
-            AddButton.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0x18, 0x00, 0x00, 0x00));
+            NoticeTextBlock.Text = text;
+            NoticeBar.Visibility = Visibility.Visible;
         }
         else
         {
@@ -1149,6 +1459,33 @@ public partial class MainWindow : Window
         }
 
         _ = ResetDropNoticeLater(token);
+    }
+
+    private void ShowNotice(string text)
+    {
+        var token = ++_dropNoticeToken;
+        if (!_isPanelOpen)
+        {
+            IconDropHint.Visibility = Visibility.Visible;
+            IconDropHintTextBlock.Text = text;
+            _ = ResetDropNoticeLater(token);
+            return;
+        }
+
+        NoticeTextBlock.Text = text;
+        NoticeBar.Visibility = Visibility.Visible;
+        _ = ResetDropNoticeLater(token);
+    }
+
+    private void ShowAddResult(AddShelfResult result)
+    {
+        if (result.SkippedCount > 0)
+        {
+            ShowNotice(UiText.FormatAddResult(_settings.LanguageCode, result.AddedCount, result.SkippedCount));
+            return;
+        }
+
+        ShowNotice(UiText.FormatCount(_settings.LanguageCode, "AddedToShelfCount", result.AddedCount));
     }
 
     private void CancelDropNotice()
@@ -1165,6 +1502,7 @@ public partial class MainWindow : Window
         }
 
         ApplyDropVisualState(false, force: true);
+        NoticeBar.Visibility = Visibility.Collapsed;
         UpdateEmptyState();
     }
 
@@ -1179,23 +1517,26 @@ public partial class MainWindow : Window
         return paths.Length;
     }
 
-    private int AddPathsAsShelfItem(IEnumerable<string> paths)
+    private AddShelfResult AddPathsAsShelfItem(IEnumerable<string> paths)
     {
-        var pathsToAdd = paths
+        var uniquePaths = paths
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var pathsToAdd = uniquePaths
             .Where(path => !Items.Any(item => item.ContainsPath(path)))
             .ToArray();
+        var skippedCount = uniquePaths.Length - pathsToAdd.Length;
 
         if (pathsToAdd.Length == 0)
         {
-            return 0;
+            return new AddShelfResult(0, skippedCount);
         }
 
         var item = ShelfItem.FromPaths(pathsToAdd);
         item.ApplyLanguage(_settings.LanguageCode);
         Items.Add(item);
-        return pathsToAdd.Length;
+        return new AddShelfResult(pathsToAdd.Length, skippedCount);
     }
 
     private void AddFilesFromDialog()
@@ -1233,17 +1574,18 @@ public partial class MainWindow : Window
 
     private void AddSelectedPaths(IEnumerable<string> paths)
     {
-        var added = AddPathsAsShelfItem(paths);
+        var result = AddPathsAsShelfItem(paths);
 
-        if (added == 0)
+        if (result.AddedCount == 0)
         {
             ShowDropNotice("AlreadyStaged");
             return;
         }
 
-        _logger.Info($"Paths added manually; addedCount={added}; totalCount={Items.Count}");
+        _logger.Info($"Paths added manually; addedCount={result.AddedCount}; skippedCount={result.SkippedCount}; totalCount={Items.Count}");
         PersistShelf();
         UpdateEmptyState();
+        ShowAddResult(result);
     }
 
     private void RemoveShelfItem(ShelfItem item)
@@ -1251,8 +1593,13 @@ public partial class MainWindow : Window
         RemoveShelfItems(new[] { item });
     }
 
-    private void RemoveShelfItems(ShelfItem[] items)
+    private void RemoveShelfItems(ShelfItem[] items, bool requireConfirmation = false)
     {
+        if (requireConfirmation && !ConfirmShelfAction("ConfirmRemoveSelected"))
+        {
+            return;
+        }
+
         var removed = RemoveShelfItemsAsBatch(items);
         if (removed == 0)
         {
@@ -1262,6 +1609,7 @@ public partial class MainWindow : Window
         _logger.Info($"Shelf items removed; removedCount={removed}; totalCount={Items.Count}");
         PersistShelf();
         UpdateEmptyState();
+        ShowNotice(UiText.Get(_settings.LanguageCode, "ShelfItemsRemoved"));
     }
 
     private void TogglePin(ShelfItem item)
@@ -1294,7 +1642,12 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            var splitItem = ShelfItem.FromPath(path, item.IsPinned, item.AddedAt);
+            var version = item.PathVersions.FirstOrDefault(candidate => string.Equals(candidate.Path, path, StringComparison.OrdinalIgnoreCase));
+            var splitItem = ShelfItem.FromPath(
+                path,
+                item.IsPinned,
+                item.AddedAt,
+                version is null ? null : new[] { version });
             splitItem.ApplyLanguage(_settings.LanguageCode);
             Items.Insert(index + inserted, splitItem);
             inserted++;
@@ -1335,7 +1688,13 @@ public partial class MainWindow : Window
             Items.RemoveAt(entry.Index);
         }
 
-        var stackedItem = ShelfItem.FromPaths(paths, isPinned, addedAt);
+        var versions = paths
+            .Select(path => selectedItems
+                .SelectMany(entry => entry.Item.PathVersions)
+                .FirstOrDefault(version => string.Equals(version.Path, path, StringComparison.OrdinalIgnoreCase))
+                ?? PathVersion.Capture(path))
+            .ToArray();
+        var stackedItem = ShelfItem.FromPaths(paths, isPinned, addedAt, versions);
         stackedItem.ApplyLanguage(_settings.LanguageCode);
         stackedItem.RefreshExists();
         Items.Insert(Math.Clamp(insertIndex, 0, Items.Count), stackedItem);
@@ -1347,16 +1706,197 @@ public partial class MainWindow : Window
         UpdateEmptyState();
     }
 
-    private void RemoveDraggedOutItems(IEnumerable<ShelfItem> dragItems)
+    private void RemoveMissingPathsFromShelf()
     {
-        var removed = RemoveShelfItemsAsBatch(dragItems.Where(item => !item.IsPinned).ToArray());
-        if (removed == 0)
+        RefreshAllItemExistence();
+        var changed = 0;
+        foreach (var item in Items.ToArray())
+        {
+            if (RemoveMissingPathsCore(item))
+            {
+                changed++;
+            }
+        }
+
+        if (changed == 0)
         {
             return;
         }
 
-        _logger.Info($"Drag-out removed unpinned shelf items; removedCount={removed}; totalCount={Items.Count}");
+        _logger.Info($"Missing shelf paths removed; changedItems={changed}; totalCount={Items.Count}");
         PersistShelf();
+        UpdateEmptyState();
+        ShowNotice(UiText.Get(_settings.LanguageCode, "MissingPathsRemoved"));
+    }
+
+    private void RemoveMissingPaths(ShelfItem item)
+    {
+        item.RefreshExists();
+        if (!RemoveMissingPathsCore(item))
+        {
+            return;
+        }
+
+        _logger.Info($"Missing paths removed from shelf item; totalCount={Items.Count}");
+        PersistShelf();
+        UpdateEmptyState();
+        ShowNotice(UiText.Get(_settings.LanguageCode, "MissingPathsRemoved"));
+    }
+
+    private bool RemoveMissingPathsCore(ShelfItem item)
+    {
+        if (!Items.Contains(item))
+        {
+            return false;
+        }
+
+        var existingPaths = item.FilePaths
+            .Where(PathExists)
+            .ToArray();
+        if (existingPaths.Length == item.FilePaths.Count)
+        {
+            return false;
+        }
+
+        if (existingPaths.Length == 0)
+        {
+            RemoveShelfItemsAsBatch(new[] { item });
+            return true;
+        }
+
+        ReplaceShelfItemPaths(item, existingPaths, preserveExistingVersions: true);
+        return true;
+    }
+
+    private void RepairMissingPath(ShelfItem item, bool chooseFolder)
+    {
+        item.RefreshExists();
+        var missingPath = item.FilePaths.FirstOrDefault(path => !PathExists(path));
+        if (missingPath is null)
+        {
+            return;
+        }
+
+        var replacementPath = chooseFolder
+            ? ChooseReplacementFolder(missingPath)
+            : ChooseReplacementFile(missingPath);
+        if (string.IsNullOrWhiteSpace(replacementPath))
+        {
+            return;
+        }
+
+        if (Items.Any(existing => !ReferenceEquals(existing, item) && existing.ContainsPath(replacementPath)))
+        {
+            ShowDropNotice("AlreadyStaged");
+            return;
+        }
+
+        var repairedPaths = item.FilePaths
+            .Select(path => string.Equals(path, missingPath, StringComparison.OrdinalIgnoreCase) ? replacementPath : path)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var repairedItem = ReplaceShelfItemPaths(item, repairedPaths, preserveExistingVersions: false);
+        ShelfList.SelectedItems.Clear();
+        ShelfList.SelectedItem = repairedItem;
+
+        _logger.Info($"Missing shelf path repaired; pathCount={repairedPaths.Length}");
+        PersistShelf();
+        UpdateEmptyState();
+        ShowNotice(UiText.Get(_settings.LanguageCode, "MissingPathRepaired"));
+    }
+
+    private string? ChooseReplacementFile(string missingPath)
+    {
+        var dialog = new OpenFileDialog
+        {
+            CheckFileExists = true,
+            Multiselect = false,
+            Title = UiText.Get(_settings.LanguageCode, "RepairMissingFile"),
+            FileName = Path.GetFileName(missingPath)
+        };
+        var directory = Path.GetDirectoryName(missingPath);
+        if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+        {
+            dialog.InitialDirectory = directory;
+        }
+
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+    }
+
+    private string? ChooseReplacementFolder(string missingPath)
+    {
+        using var dialog = new Forms.FolderBrowserDialog
+        {
+            Description = UiText.Get(_settings.LanguageCode, "RepairMissingFolder"),
+            UseDescriptionForTitle = true,
+            SelectedPath = Directory.Exists(missingPath) ? missingPath : AppContext.BaseDirectory
+        };
+
+        return dialog.ShowDialog() == Forms.DialogResult.OK ? dialog.SelectedPath : null;
+    }
+
+    private ShelfItem ReplaceShelfItemPaths(ShelfItem item, IReadOnlyCollection<string> paths, bool preserveExistingVersions = true)
+    {
+        var index = Items.IndexOf(item);
+        if (index < 0)
+        {
+            return item;
+        }
+
+        var versions = preserveExistingVersions
+            ? paths
+                .Select(path => item.PathVersions.FirstOrDefault(version => string.Equals(version.Path, path, StringComparison.OrdinalIgnoreCase))
+                    ?? PathVersion.Capture(path))
+                .ToArray()
+            : paths.Select(PathVersion.Capture).ToArray();
+        var replacement = ShelfItem.FromPaths(paths, item.IsPinned, item.AddedAt, versions);
+        replacement.ApplyLanguage(_settings.LanguageCode);
+        replacement.RefreshExists();
+        Items[index] = replacement;
+        return replacement;
+    }
+
+    private void RemoveDraggedOutItems(IEnumerable<ShelfItem> dragItems, IReadOnlyCollection<string> sentPaths)
+    {
+        var sentPathSet = new HashSet<string>(sentPaths, StringComparer.OrdinalIgnoreCase);
+        var itemsToRemove = new List<ShelfItem>();
+        var partialUpdates = 0;
+
+        foreach (var item in dragItems.Where(item => !item.IsPinned).Distinct().ToArray())
+        {
+            if (!Items.Contains(item))
+            {
+                continue;
+            }
+
+            var remainingPaths = item.FilePaths
+                .Where(path => !sentPathSet.Contains(path))
+                .ToArray();
+            if (remainingPaths.Length == 0)
+            {
+                itemsToRemove.Add(item);
+                continue;
+            }
+
+            if (remainingPaths.Length != item.FilePaths.Count)
+            {
+                ReplaceShelfItemPaths(item, remainingPaths);
+                partialUpdates++;
+            }
+        }
+
+        var removed = RemoveShelfItemsAsBatch(itemsToRemove);
+        if (removed == 0 && partialUpdates == 0)
+        {
+            return;
+        }
+
+        _logger.Info($"Drag-out removed unpinned shelf paths; removedCount={removed}; partialUpdates={partialUpdates}; totalCount={Items.Count}");
+        PersistShelf();
+        if (partialUpdates > 0)
+        {
+            ShowNotice(UiText.Get(_settings.LanguageCode, "MissingPathsKeptAfterDrag"));
+        }
     }
 
     private void LoadShelfState()
@@ -1476,6 +2016,28 @@ public partial class MainWindow : Window
         return item.FilePaths.FirstOrDefault(path => File.Exists(path) || Directory.Exists(path));
     }
 
+    private static bool PathExists(string path)
+    {
+        return File.Exists(path) || Directory.Exists(path);
+    }
+
+    private void RefreshAllItemExistence()
+    {
+        foreach (var item in Items)
+        {
+            item.RefreshVersionState();
+        }
+    }
+
+    private bool ConfirmShelfAction(string textKey)
+    {
+        return System.Windows.MessageBox.Show(
+            UiText.Get(_settings.LanguageCode, textKey),
+            UiText.Get(_settings.LanguageCode, "PortableTitle"),
+            MessageBoxButton.OKCancel,
+            MessageBoxImage.Warning) == MessageBoxResult.OK;
+    }
+
     private void RememberRemovedItems(IEnumerable<RemovedShelfItem> removedItems)
     {
         var batchItems = removedItems
@@ -1591,4 +2153,8 @@ public partial class MainWindow : Window
     private sealed record RemovedShelfItem(ShelfItem Item, int Index);
 
     private sealed record RemovedShelfBatch(RemovedShelfItem[] Items);
+
+    private sealed record AddShelfResult(int AddedCount, int SkippedCount);
+
+    private sealed record ShelfVersionCheckResult(int ChangedCount, int MissingCount);
 }

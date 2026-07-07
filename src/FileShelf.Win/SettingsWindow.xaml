@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="FileShelf"
         Width="460"
-        Height="292"
-        MinHeight="284"
+        Height="346"
+        MinHeight="338"
         MinWidth="460"
         ResizeMode="CanResizeWithGrip"
         WindowStartupLocation="CenterScreen"
@@ -48,6 +48,44 @@
             <Setter Property="BorderBrush" Value="#1F000000" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style x:Key="PrimaryActionButton" TargetType="Button">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="#FF141414" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#33141414" />
+            <Setter Property="Foreground" Value="#FFFFFFFF" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonSurface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#FF2A2A2A" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#FF000000" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#FFEDEDED" />
+                                <Setter TargetName="ButtonSurface" Property="BorderBrush" Value="#33141414" />
+                                <Setter Property="Foreground" Value="#FF9A9A9A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="LabelText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
@@ -229,6 +267,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="74" />
@@ -276,14 +315,23 @@
                             Content="&#xE8B7;"
                             Click="DataBrowseButton_Click" />
 
+                    <TextBlock x:Name="DataPathHintTextBlock"
+                               Grid.Row="2"
+                               Grid.Column="1"
+                               Grid.ColumnSpan="2"
+                               Margin="0,5,0,0"
+                               FontSize="10"
+                               Foreground="#FF6A6A6A"
+                               TextWrapping="Wrap" />
+
                     <TextBlock x:Name="LogLabelTextBlock"
-                              Grid.Row="2"
-                               Margin="0,6,0,0"
+                               Grid.Row="3"
+                               Margin="0,8,0,0"
                                Style="{StaticResource LabelText}" />
-                    <Grid Grid.Row="2"
+                    <Grid Grid.Row="3"
                           Grid.Column="1"
                           MinHeight="34"
-                          Margin="0,6,0,0">
+                          Margin="0,8,0,0">
                         <Border Background="#FFFFFFFF"
                                 BorderBrush="#33141414"
                                 BorderThickness="1"
@@ -298,9 +346,9 @@
                                  LostFocus="LogPathTextBox_LostFocus" />
                     </Grid>
                     <Button x:Name="LogBrowseButton"
-                            Grid.Row="2"
+                            Grid.Row="3"
                             Grid.Column="2"
-                            Margin="0,6,0,0"
+                            Margin="0,8,0,0"
                             Style="{StaticResource PathBrowseButton}"
                             Content="&#xE8A5;"
                             Click="LogBrowseButton_Click" />
@@ -310,11 +358,15 @@
             <DockPanel Grid.Row="2"
                        Margin="0,12,0,0"
                        LastChildFill="False">
+                <Button x:Name="ResetDefaultsButton"
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource ActionButton}"
+                        Background="#FFF3F3F3"
+                        MinWidth="104"
+                        Click="ResetDefaults_Click" />
                 <Button x:Name="SaveButton"
                         DockPanel.Dock="Right"
-                        Style="{StaticResource ActionButton}"
-                        Background="#FF141414"
-                        Foreground="#FFFFFFFF"
+                        Style="{StaticResource PrimaryActionButton}"
                         MinWidth="72"
                         IsDefault="True"
                         Click="Save_Click" />

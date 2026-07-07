@@ -9,6 +9,7 @@ namespace FileShelf.Win.Models;
 
 public sealed class ShelfItem : INotifyPropertyChanged
 {
+    private bool _hasChangedPaths;
     private bool _exists;
     private bool _hasMissingPaths;
     private bool _isPinned;
@@ -16,6 +17,8 @@ public sealed class ShelfItem : INotifyPropertyChanged
     private string _name = string.Empty;
 
     public required IReadOnlyList<string> FilePaths { get; init; }
+
+    public required IReadOnlyList<PathVersion> PathVersions { get; init; }
 
     public string Path => FilePaths[0];
 
@@ -41,6 +44,11 @@ public sealed class ShelfItem : INotifyPropertyChanged
     public bool IsDirectory { get; init; }
 
     public bool IsGroup => FilePaths.Count > 1;
+
+    public bool ContainsDirectories => PathVersions.Any(version => version.IsDirectory);
+
+    public bool ContainsFiles => PathVersions.Any(version => version.Exists && !version.IsDirectory)
+        || (!ContainsDirectories && PathVersions.Any(version => !version.Exists));
 
     public bool IsPinned
     {
@@ -91,6 +99,23 @@ public sealed class ShelfItem : INotifyPropertyChanged
         }
     }
 
+    public bool HasChangedPaths
+    {
+        get => _hasChangedPaths;
+        private set
+        {
+            if (_hasChangedPaths == value)
+            {
+                return;
+            }
+
+            _hasChangedPaths = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(VersionVisibility));
+            OnPropertyChanged(nameof(VersionText));
+        }
+    }
+
     public DateTime AddedAt { get; init; }
 
     public string Badge
@@ -99,17 +124,25 @@ public sealed class ShelfItem : INotifyPropertyChanged
         {
             if (IsGroup)
             {
-                return FilePaths.Count.ToString();
+                if (ContainsDirectories && !ContainsFiles)
+                {
+                    return $"{FilePaths.Count}D";
+                }
+
+                if (!ContainsDirectories && ContainsFiles)
+                {
+                    return $"{FilePaths.Count}F";
+                }
+
+                return $"{FilePaths.Count}M";
             }
 
             if (IsDirectory)
             {
-                return "DIR";
+                return "D";
             }
 
-            return string.IsNullOrWhiteSpace(Extension)
-                ? "FILE"
-                : Extension.TrimStart('.').ToUpperInvariant();
+            return "F";
         }
     }
 
@@ -123,11 +156,15 @@ public sealed class ShelfItem : INotifyPropertyChanged
 
     public Visibility PinVisibility => IsPinned ? Visibility.Visible : Visibility.Collapsed;
 
-    public Visibility IconVisibility => IconImage is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility IconVisibility => Visibility.Collapsed;
 
-    public Visibility BadgeVisibility => IconImage is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility BadgeVisibility => Visibility.Visible;
 
     public string MissingText => UiText.Get(_languageCode, IsGroup ? "SomeFilesMissing" : "FileNotFound");
+
+    public string VersionText => UiText.Get(_languageCode, "ShelfItemChanged");
+
+    public Visibility VersionVisibility => HasChangedPaths ? Visibility.Visible : Visibility.Collapsed;
 
     public string RevealToolTip => UiText.Get(_languageCode, "RevealInExplorer");
 
@@ -137,8 +174,9 @@ public sealed class ShelfItem : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public static ShelfItem FromPath(string path, bool isPinned = false, DateTime? addedAt = null)
+    public static ShelfItem FromPath(string path, bool isPinned = false, DateTime? addedAt = null, IReadOnlyList<PathVersion>? pathVersions = null)
     {
+        var versions = pathVersions?.Count > 0 ? pathVersions.ToArray() : new[] { PathVersion.Capture(path) };
         var isDirectory = Directory.Exists(path);
         var name = System.IO.Path.GetFileName(path.TrimEnd(
             System.IO.Path.DirectorySeparatorChar,
@@ -148,6 +186,7 @@ public sealed class ShelfItem : INotifyPropertyChanged
         return new ShelfItem
         {
             FilePaths = new[] { path },
+            PathVersions = versions,
             Name = string.IsNullOrWhiteSpace(name) ? path : name,
             Extension = isDirectory ? string.Empty : System.IO.Path.GetExtension(path),
             IconImage = ShellIconService.GetSmallIcon(path, isDirectory),
@@ -161,6 +200,11 @@ public sealed class ShelfItem : INotifyPropertyChanged
 
     public static ShelfItem FromPaths(IEnumerable<string> paths, bool isPinned = false, DateTime? addedAt = null)
     {
+        return FromPaths(paths, isPinned, addedAt, null);
+    }
+
+    public static ShelfItem FromPaths(IEnumerable<string> paths, bool isPinned, DateTime? addedAt, IReadOnlyList<PathVersion>? pathVersions)
+    {
         var filePaths = paths
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -173,15 +217,19 @@ public sealed class ShelfItem : INotifyPropertyChanged
 
         if (filePaths.Length == 1)
         {
-            return FromPath(filePaths[0], isPinned, addedAt);
+            return FromPath(filePaths[0], isPinned, addedAt, pathVersions);
         }
 
+        var versions = pathVersions?.Count == filePaths.Length
+            ? pathVersions.ToArray()
+            : filePaths.Select(PathVersion.Capture).ToArray();
         var existingPaths = filePaths
             .Select(path => File.Exists(path) || Directory.Exists(path))
             .ToArray();
         var item = new ShelfItem
         {
             FilePaths = filePaths,
+            PathVersions = versions,
             Name = UiText.FormatGroupName(UiText.English, filePaths.Length),
             Extension = string.Empty,
             IsDirectory = false,
@@ -200,11 +248,17 @@ public sealed class ShelfItem : INotifyPropertyChanged
 
     public void RefreshExists()
     {
-        var existingPaths = FilePaths
-            .Select(path => File.Exists(path) || Directory.Exists(path))
-            .ToArray();
+        RefreshVersionState();
+    }
+
+    public void RefreshVersionState()
+    {
+        var currentVersions = FilePaths.Select(PathVersion.Capture).ToArray();
+        var existingPaths = currentVersions.Select(version => version.Exists).ToArray();
         Exists = existingPaths.Any(exists => exists);
         HasMissingPaths = existingPaths.Any(exists => !exists);
+        HasChangedPaths = PathVersions.Count != currentVersions.Length
+            || PathVersions.Zip(currentVersions).Any(pair => !VersionsMatch(pair.First, pair.Second));
     }
 
     public void ApplyLanguage(string languageCode)
@@ -216,10 +270,22 @@ public sealed class ShelfItem : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(MissingText));
+        OnPropertyChanged(nameof(VersionText));
         OnPropertyChanged(nameof(PathSummary));
         OnPropertyChanged(nameof(RevealToolTip));
         OnPropertyChanged(nameof(RemoveToolTip));
         OnPropertyChanged(nameof(PinToolTip));
+    }
+
+    private static bool VersionsMatch(PathVersion stored, PathVersion current)
+    {
+        return string.Equals(stored.Path, current.Path, StringComparison.OrdinalIgnoreCase)
+            && stored.Exists == current.Exists
+            && stored.IsDirectory == current.IsDirectory
+            && stored.Length == current.Length
+            && stored.LastWriteTimeUtcTicks == current.LastWriteTimeUtcTicks
+            && stored.ChildCount == current.ChildCount
+            && string.Equals(stored.Fingerprint, current.Fingerprint, StringComparison.Ordinal);
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

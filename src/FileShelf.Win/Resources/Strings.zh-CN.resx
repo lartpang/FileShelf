@@ -30,8 +30,17 @@
   <data name="AddToShelf" xml:space="preserve">
     <value>添加到暂存架</value>
   </data>
+  <data name="AddedSkipped" xml:space="preserve">
+    <value>已添加 {0} 项，跳过 {1} 个已存在项</value>
+  </data>
+  <data name="AddedToShelfCount" xml:space="preserve">
+    <value>已添加 {0} 项</value>
+  </data>
   <data name="AlreadyStaged" xml:space="preserve">
     <value>已在暂存架中</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>应用</value>
   </data>
   <data name="BrowseDataPath" xml:space="preserve">
     <value>选择数据文件夹</value>
@@ -54,6 +63,9 @@
   <data name="ClearUnpinned" xml:space="preserve">
     <value>清空未固定项</value>
   </data>
+  <data name="CheckShelfVersions" xml:space="preserve">
+    <value>检测暂存项是否发生变化</value>
+  </data>
   <data name="Close" xml:space="preserve">
     <value>关闭</value>
   </data>
@@ -66,6 +78,15 @@
   <data name="Data" xml:space="preserve">
     <value>数据</value>
   </data>
+  <data name="DataPathApplyHint" xml:space="preserve">
+    <value>应用后，当前暂存架状态会保存到这个数据文件夹。</value>
+  </data>
+  <data name="ConfirmClearUnpinned" xml:space="preserve">
+    <value>确定清空所有未固定的暂存项？</value>
+  </data>
+  <data name="ConfirmRemoveSelected" xml:space="preserve">
+    <value>确定移除所选暂存项？</value>
+  </data>
   <data name="Development" xml:space="preserve">
     <value>开发</value>
   </data>
@@ -77,6 +98,18 @@
   </data>
   <data name="DragSelectionFromCount" xml:space="preserve">
     <value>拖动这里可拖出所选暂存项</value>
+  </data>
+  <data name="DragOutBlockedByVersion" xml:space="preserve">
+    <value>已阻止拖出：暂存路径发生变化或缺失</value>
+  </data>
+  <data name="DragOutHint" xml:space="preserve">
+    <value>拖出未变化的暂存路径</value>
+  </data>
+  <data name="DragOutOrReorderHint" xml:space="preserve">
+    <value>拖到外部可取出，拖回面板内可排序</value>
+  </data>
+  <data name="DropToReorderHint" xml:space="preserve">
+    <value>松开以调整顺序</value>
   </data>
   <data name="DropFiles" xml:space="preserve">
     <value>拖入文件</value>
@@ -129,6 +162,12 @@
   <data name="LogFileFilter" xml:space="preserve">
     <value>日志文件 (*.log)|*.log|所有文件 (*.*)|*.*</value>
   </data>
+  <data name="LogPathInvalid" xml:space="preserve">
+    <value>日志路径无效。</value>
+  </data>
+  <data name="LogPathMustBeFile" xml:space="preserve">
+    <value>日志路径必须是文件，不能是文件夹。</value>
+  </data>
   <data name="Mode" xml:space="preserve">
     <value>模式</value>
   </data>
@@ -147,8 +186,17 @@
   <data name="PathOnly" xml:space="preserve">
     <value>文件保留在原处，FileShelf 只保存路径。</value>
   </data>
+  <data name="PanelPinned" xml:space="preserve">
+    <value>面板已固定</value>
+  </data>
+  <data name="PanelUnpinned" xml:space="preserve">
+    <value>面板已取消固定</value>
+  </data>
   <data name="Pin" xml:space="preserve">
     <value>固定</value>
+  </data>
+  <data name="PinPanel" xml:space="preserve">
+    <value>固定面板保持打开</value>
   </data>
   <data name="PortableTitle" xml:space="preserve">
     <value>FileShelf（便携版）</value>
@@ -163,7 +211,7 @@
     <value>只记录路径，源文件保持原位。</value>
   </data>
   <data name="ReleaseToStageShort" xml:space="preserve">
-    <value>松开暂存</value>
+    <value>放入</value>
   </data>
   <data name="Remove" xml:space="preserve">
     <value>移除</value>
@@ -171,8 +219,23 @@
   <data name="RemoveSelected" xml:space="preserve">
     <value>移除所选项</value>
   </data>
+  <data name="RemoveMissingPaths" xml:space="preserve">
+    <value>移除缺失路径</value>
+  </data>
+  <data name="RepairMissingFile" xml:space="preserve">
+    <value>重新定位缺失文件...</value>
+  </data>
+  <data name="RepairMissingFolder" xml:space="preserve">
+    <value>重新定位缺失文件夹...</value>
+  </data>
+  <data name="ReorderOnlyChangedHint" xml:space="preserve">
+    <value>该项已变化；在检测或修复前只能在面板内排序</value>
+  </data>
   <data name="RestoreRemoved" xml:space="preserve">
     <value>恢复最近移除</value>
+  </data>
+  <data name="RestoreDefaults" xml:space="preserve">
+    <value>恢复原始预设</value>
   </data>
   <data name="RevealInExplorer" xml:space="preserve">
     <value>在资源管理器中显示</value>
@@ -210,6 +273,33 @@
   <data name="SettingsSaveFailed" xml:space="preserve">
     <value>设置保存失败。</value>
   </data>
+  <data name="SettingsPathValidationFailed" xml:space="preserve">
+    <value>设置中的路径不可用。</value>
+  </data>
+  <data name="ShelfItemsRemoved" xml:space="preserve">
+    <value>已从暂存架移除</value>
+  </data>
+  <data name="ShelfItemChanged" xml:space="preserve">
+    <value>暂存后发生变化</value>
+  </data>
+  <data name="ShelfOrderUpdated" xml:space="preserve">
+    <value>暂存架顺序已更新</value>
+  </data>
+  <data name="ShelfVersionsChanged" xml:space="preserve">
+    <value>变化项：{0}；缺失项：{1}</value>
+  </data>
+  <data name="ShelfVersionsUnchanged" xml:space="preserve">
+    <value>所有暂存项仍与拖入时一致</value>
+  </data>
+  <data name="MissingPathRepaired" xml:space="preserve">
+    <value>缺失路径已修复</value>
+  </data>
+  <data name="MissingPathsKeptAfterDrag" xml:space="preserve">
+    <value>已拖出存在路径，缺失路径已保留</value>
+  </data>
+  <data name="MissingPathsRemoved" xml:space="preserve">
+    <value>缺失路径已移除</value>
+  </data>
   <data name="SomeFilesMissing" xml:space="preserve">
     <value>部分文件不存在</value>
   </data>
@@ -243,6 +333,9 @@
   </data>
   <data name="Unpin" xml:space="preserve">
     <value>取消固定</value>
+  </data>
+  <data name="UnpinPanel" xml:space="preserve">
+    <value>允许面板自动收起</value>
   </data>
   <data name="Update" xml:space="preserve">
     <value>更新</value>

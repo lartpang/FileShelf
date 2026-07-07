@@ -30,8 +30,17 @@
   <data name="AddToShelf" xml:space="preserve">
     <value>Add to Shelf</value>
   </data>
+  <data name="AddedSkipped" xml:space="preserve">
+    <value>Added {0}; skipped {1} already staged</value>
+  </data>
+  <data name="AddedToShelfCount" xml:space="preserve">
+    <value>Added {0} {1}</value>
+  </data>
   <data name="AlreadyStaged" xml:space="preserve">
     <value>Already staged</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Apply</value>
   </data>
   <data name="BrowseDataPath" xml:space="preserve">
     <value>Choose data folder</value>
@@ -54,6 +63,9 @@
   <data name="ClearUnpinned" xml:space="preserve">
     <value>Clear Unpinned</value>
   </data>
+  <data name="CheckShelfVersions" xml:space="preserve">
+    <value>Check whether staged items changed</value>
+  </data>
   <data name="Close" xml:space="preserve">
     <value>Close</value>
   </data>
@@ -66,6 +78,15 @@
   <data name="Data" xml:space="preserve">
     <value>Data</value>
   </data>
+  <data name="DataPathApplyHint" xml:space="preserve">
+    <value>When applied, the current shelf state is saved to this data folder.</value>
+  </data>
+  <data name="ConfirmClearUnpinned" xml:space="preserve">
+    <value>Clear all unpinned shelf items?</value>
+  </data>
+  <data name="ConfirmRemoveSelected" xml:space="preserve">
+    <value>Remove the selected shelf items?</value>
+  </data>
   <data name="Development" xml:space="preserve">
     <value>Development</value>
   </data>
@@ -77,6 +98,18 @@
   </data>
   <data name="DragSelectionFromCount" xml:space="preserve">
     <value>Drag this handle to drag selected staged items out</value>
+  </data>
+  <data name="DragOutBlockedByVersion" xml:space="preserve">
+    <value>Drag-out blocked: staged paths changed or went missing</value>
+  </data>
+  <data name="DragOutHint" xml:space="preserve">
+    <value>Drag out unchanged staged paths</value>
+  </data>
+  <data name="DragOutOrReorderHint" xml:space="preserve">
+    <value>Drop outside to drag out, or inside to reorder</value>
+  </data>
+  <data name="DropToReorderHint" xml:space="preserve">
+    <value>Drop here to reorder</value>
   </data>
   <data name="DropFiles" xml:space="preserve">
     <value>Drop files here</value>
@@ -129,6 +162,12 @@
   <data name="LogFileFilter" xml:space="preserve">
     <value>Log files (*.log)|*.log|All files (*.*)|*.*</value>
   </data>
+  <data name="LogPathInvalid" xml:space="preserve">
+    <value>The log path is invalid.</value>
+  </data>
+  <data name="LogPathMustBeFile" xml:space="preserve">
+    <value>The log path must be a file, not a folder.</value>
+  </data>
   <data name="Mode" xml:space="preserve">
     <value>Mode</value>
   </data>
@@ -147,8 +186,17 @@
   <data name="PathOnly" xml:space="preserve">
     <value>Files stay in place. FileShelf only keeps paths.</value>
   </data>
+  <data name="PanelPinned" xml:space="preserve">
+    <value>Panel pinned</value>
+  </data>
+  <data name="PanelUnpinned" xml:space="preserve">
+    <value>Panel unpinned</value>
+  </data>
   <data name="Pin" xml:space="preserve">
     <value>Pin</value>
+  </data>
+  <data name="PinPanel" xml:space="preserve">
+    <value>Pin panel open</value>
   </data>
   <data name="PortableTitle" xml:space="preserve">
     <value>FileShelf (Portable)</value>
@@ -163,7 +211,7 @@
     <value>Only paths are stored. Source files stay in place.</value>
   </data>
   <data name="ReleaseToStageShort" xml:space="preserve">
-    <value>Release</value>
+    <value>Drop</value>
   </data>
   <data name="Remove" xml:space="preserve">
     <value>Remove</value>
@@ -171,8 +219,23 @@
   <data name="RemoveSelected" xml:space="preserve">
     <value>Remove Selected</value>
   </data>
+  <data name="RemoveMissingPaths" xml:space="preserve">
+    <value>Remove Missing Paths</value>
+  </data>
+  <data name="RepairMissingFile" xml:space="preserve">
+    <value>Relocate Missing File...</value>
+  </data>
+  <data name="RepairMissingFolder" xml:space="preserve">
+    <value>Relocate Missing Folder...</value>
+  </data>
+  <data name="ReorderOnlyChangedHint" xml:space="preserve">
+    <value>This item changed; it can only be reordered until checked or repaired</value>
+  </data>
   <data name="RestoreRemoved" xml:space="preserve">
     <value>Restore Removed</value>
+  </data>
+  <data name="RestoreDefaults" xml:space="preserve">
+    <value>Restore Original Defaults</value>
   </data>
   <data name="RevealInExplorer" xml:space="preserve">
     <value>Reveal in Explorer</value>
@@ -210,6 +273,33 @@
   <data name="SettingsSaveFailed" xml:space="preserve">
     <value>Settings could not be saved.</value>
   </data>
+  <data name="SettingsPathValidationFailed" xml:space="preserve">
+    <value>Settings paths could not be used.</value>
+  </data>
+  <data name="ShelfItemsRemoved" xml:space="preserve">
+    <value>Removed from shelf</value>
+  </data>
+  <data name="ShelfItemChanged" xml:space="preserve">
+    <value>Changed since staged</value>
+  </data>
+  <data name="ShelfOrderUpdated" xml:space="preserve">
+    <value>Shelf order updated</value>
+  </data>
+  <data name="ShelfVersionsChanged" xml:space="preserve">
+    <value>Changed items: {0}; missing items: {1}</value>
+  </data>
+  <data name="ShelfVersionsUnchanged" xml:space="preserve">
+    <value>All staged items still match</value>
+  </data>
+  <data name="MissingPathRepaired" xml:space="preserve">
+    <value>Missing path repaired</value>
+  </data>
+  <data name="MissingPathsKeptAfterDrag" xml:space="preserve">
+    <value>Dragged existing paths; missing paths were kept</value>
+  </data>
+  <data name="MissingPathsRemoved" xml:space="preserve">
+    <value>Missing paths removed</value>
+  </data>
   <data name="SomeFilesMissing" xml:space="preserve">
     <value>Some files are missing</value>
   </data>
@@ -243,6 +333,9 @@
   </data>
   <data name="Unpin" xml:space="preserve">
     <value>Unpin</value>
+  </data>
+  <data name="UnpinPanel" xml:space="preserve">
+    <value>Allow panel to collapse</value>
   </data>
   <data name="Update" xml:space="preserve">
     <value>Update</value>

@@ -7,7 +7,12 @@ namespace FileShelf.Win;
 
 public partial class App : System.Windows.Application
 {
+    private const string SingleInstanceMutexName = @"Local\FileShelf.Win.SingleInstance";
+    private const string ShowShelfEventName = @"Local\FileShelf.Win.ShowShelf";
+
     private Mutex? _singleInstanceMutex;
+    private EventWaitHandle? _showShelfEvent;
+    private RegisteredWaitHandle? _showShelfWaitHandle;
     private bool _hasSingleInstanceLock;
     private MainWindow? _mainWindow;
     private TrayService? _trayService;
@@ -22,12 +27,15 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        _singleInstanceMutex = new Mutex(true, @"Local\FileShelf.Win.SingleInstance", out _hasSingleInstanceLock);
+        _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out _hasSingleInstanceLock);
         if (!_hasSingleInstanceLock)
         {
+            SignalExistingInstance();
             Shutdown();
             return;
         }
+
+        InitializeSingleInstanceSignal();
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         DispatcherUnhandledException += (_, args) =>
@@ -68,6 +76,8 @@ public partial class App : System.Windows.Application
         SaveWindowSettings();
         _trayService?.Dispose();
         _logger?.Info("Application exited");
+        _showShelfWaitHandle?.Unregister(null);
+        _showShelfEvent?.Dispose();
         if (_hasSingleInstanceLock)
         {
             _singleInstanceMutex?.ReleaseMutex();
@@ -126,9 +136,14 @@ public partial class App : System.Windows.Application
         };
         _settingsWindow = settingsWindow;
         settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        settingsWindow.LanguageChanged += (_, _) => ApplyLanguage();
+        var previousLogPath = PortablePaths.LogPath;
         if (settingsWindow.ShowDialog() == true)
         {
+            if (!PathsEqual(previousLogPath, PortablePaths.LogPath))
+            {
+                _logger?.Reset();
+            }
+
             _mainWindow.ApplySettings(_settings);
             _mainWindow.SaveShelfState();
             UpdateTrayText(_mainWindow.ItemCount);
@@ -180,6 +195,55 @@ public partial class App : System.Windows.Application
 
         _mainWindow.ApplyLanguage();
         UpdateTrayText(_mainWindow.ItemCount);
+    }
+
+    private void InitializeSingleInstanceSignal()
+    {
+        _showShelfEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowShelfEventName);
+        _showShelfWaitHandle = ThreadPool.RegisterWaitForSingleObject(
+            _showShelfEvent,
+            (_, timedOut) =>
+            {
+                if (timedOut)
+                {
+                    return;
+                }
+
+                Dispatcher.BeginInvoke(() => ShowShelf());
+            },
+            null,
+            Timeout.Infinite,
+            executeOnlyOnce: false);
+    }
+
+    private static void SignalExistingInstance()
+    {
+        try
+        {
+            using var showShelfEvent = EventWaitHandle.OpenExisting(ShowShelfEventName);
+            showShelfEvent.Set();
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        try
+        {
+            return string.Equals(
+                System.IO.Path.GetFullPath(left),
+                System.IO.Path.GetFullPath(right),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private void SaveWindowSettings()

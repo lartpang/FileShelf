@@ -56,12 +56,12 @@
         </Style>
 
         <Style x:Key="ItemActionButton" TargetType="Button" BasedOn="{StaticResource ShelfButton}">
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="16" />
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontSize" Value="8.5" />
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
-            <Setter Property="MinWidth" Value="18" />
+            <Setter Property="MinWidth" Value="14" />
         </Style>
 
         <Style x:Key="ShelfScrollBarPageButton" TargetType="RepeatButton">
@@ -200,7 +200,7 @@
         </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="18" />
+                <RowDefinition Height="22" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -210,11 +210,17 @@
                     PreviewMouseLeftButtonDown="TitleBar_PreviewMouseLeftButtonDown">
                 <Grid Margin="8,0">
                     <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
+                                HorizontalAlignment="Left"
                                 VerticalAlignment="Center">
-                        <Ellipse Width="4" Height="4" Fill="#66000000" />
-                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#66000000" />
-                        <Ellipse Width="4" Height="4" Margin="4,0,0,0" Fill="#66000000" />
+                        <Button x:Name="PanelPinButton"
+                                Style="{StaticResource ItemActionButton}"
+                                Content="&#xE718;"
+                                Click="PanelPinButton_Click" />
+                        <Button x:Name="CheckShelfButton"
+                                Style="{StaticResource ItemActionButton}"
+                                Content="&#xE9D5;"
+                                Margin="4,0,0,0"
+                                Click="CheckShelfButton_Click" />
                     </StackPanel>
                     <Border x:Name="CountDragHandle"
                             HorizontalAlignment="Right"
@@ -260,7 +266,8 @@
                         Background="#FAFFFFFF"
                         BorderBrush="#1F000000"
                         BorderThickness="1"
-                        CornerRadius="12">
+                        CornerRadius="12"
+                        MouseLeftButtonDown="ShelfBackground_MouseLeftButtonDown">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -274,6 +281,7 @@
                                  Padding="7"
                                  SelectionChanged="ShelfList_SelectionChanged"
                                  KeyDown="ShelfList_KeyDown"
+                                 PreviewMouseLeftButtonDown="ShelfList_PreviewMouseLeftButtonDown"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ScrollViewer.CanContentScroll="True"
@@ -288,7 +296,7 @@
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="0" />
-                                <Setter Property="Margin" Value="0,0,0,7" />
+                                <Setter Property="Margin" Value="0,0,0,4" />
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="BorderThickness" Value="0" />
@@ -304,56 +312,57 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border x:Name="ItemSurface"
-                                        MinHeight="54"
-                                        Padding="7"
+                                        MinHeight="38"
+                                        Padding="5"
                                         Background="#FFFFFFFF"
                                         BorderBrush="#1F000000"
                                         BorderThickness="1"
-                                        CornerRadius="10"
+                                        CornerRadius="7"
                                         MouseLeftButtonDown="FileItem_MouseLeftButtonDown"
                                         MouseMove="FileItem_MouseMove"
                                         MouseRightButtonUp="FileItem_MouseRightButtonUp">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="34" />
+                                            <ColumnDefinition Width="25" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="22" />
+                                            <ColumnDefinition Width="42" />
                                         </Grid.ColumnDefinitions>
-                                        <Grid Width="34"
-                                              Height="34">
+                                        <Grid Width="24"
+                                              Height="24"
+                                              VerticalAlignment="Center">
                                             <Border x:Name="GroupLayerBack"
-                                                    Width="25"
-                                                    Height="25"
-                                                    Margin="7,2,0,0"
+                                                    Width="18"
+                                                    Height="18"
+                                                    Margin="5,1,0,0"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Background="#FFEAEAEA"
-                                                    CornerRadius="7"
+                                                    CornerRadius="5"
                                                     Visibility="Collapsed" />
                                             <Border x:Name="GroupLayerMid"
-                                                    Width="27"
-                                                    Height="27"
-                                                    Margin="4,4,0,0"
+                                                    Width="19"
+                                                    Height="19"
+                                                    Margin="3,3,0,0"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Background="#FFF3F3F3"
-                                                    CornerRadius="8"
+                                                    CornerRadius="5"
                                                     Visibility="Collapsed" />
                                             <Border x:Name="BadgeSurface"
-                                                    Width="30"
-                                                    Height="30"
+                                                    Width="22"
+                                                    Height="22"
                                                     HorizontalAlignment="Left"
                                                     VerticalAlignment="Top"
                                                     Background="#FFFFFFFF"
                                                     BorderBrush="#33141414"
                                                     BorderThickness="1"
-                                                    CornerRadius="8"
+                                                    CornerRadius="6"
                                                     Visibility="{Binding BadgeVisibility}">
                                                 <TextBlock x:Name="BadgeText"
                                                            Text="{Binding Badge}"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"
-                                                           FontSize="9"
+                                                           FontSize="8"
                                                            FontWeight="SemiBold"
                                                            Foreground="#FF141414"
                                                            TextTrimming="CharacterEllipsis" />
@@ -379,26 +388,32 @@
                                         <StackPanel x:Name="ItemTextPanel"
                                                     Grid.Column="1"
                                                     VerticalAlignment="Center"
-                                                    Margin="4,0,6,0">
+                                                    Margin="3,0,5,0">
                                             <TextBlock x:Name="ItemNameText"
                                                        Text="{Binding Name}"
-                                                       FontSize="10"
+                                                       FontSize="9.5"
                                                        FontWeight="SemiBold"
                                                        Foreground="#FF141414"
                                                        TextTrimming="CharacterEllipsis" />
                                             <TextBlock x:Name="ItemPathText"
                                                        Text="{Binding PathSummary}"
-                                                       Margin="0,1,0,0"
-                                                       FontSize="8.5"
+                                                       Margin="0,0,0,0"
+                                                       FontSize="8"
                                                        Foreground="#FF5A5A5A"
                                                        ToolTip="{Binding FullPathToolTip}"
                                                        TextTrimming="CharacterEllipsis" />
                                             <TextBlock x:Name="MissingTextBlock"
                                                        Text="{Binding MissingText}"
-                                                       Margin="0,1,0,0"
-                                                       FontSize="9"
+                                                       Margin="0,0,0,0"
+                                                       FontSize="8"
                                                        Foreground="#FF8A5A00"
                                                        Visibility="{Binding MissingVisibility}" />
+                                            <TextBlock x:Name="VersionTextBlock"
+                                                       Text="{Binding VersionText}"
+                                                       Margin="0,0,0,0"
+                                                       FontSize="8"
+                                                       Foreground="#FF8A5A00"
+                                                       Visibility="{Binding VersionVisibility}" />
                                         </StackPanel>
                                         <TextBlock x:Name="PinStatusText"
                                                    Grid.Column="2"
@@ -416,22 +431,25 @@
                                                     VerticalAlignment="Center"
                                                     Opacity="0.68"
                                                     Visibility="Visible">
-                                            <UniformGrid Rows="3"
+                                            <UniformGrid Rows="1"
+                                                         Columns="3"
                                                          HorizontalAlignment="Right">
                                                 <Button x:Name="PinItemButton"
                                                         Style="{StaticResource ItemActionButton}"
                                                         Content="&#xE718;"
                                                         ToolTip="{Binding PinToolTip}"
                                                         Click="PinItemButton_Click" />
-                                                <Button Style="{StaticResource ItemActionButton}"
+                                                <Button x:Name="RevealItemButton"
+                                                        Style="{StaticResource ItemActionButton}"
                                                         Content="&#xE8A7;"
                                                         ToolTip="{Binding RevealToolTip}"
-                                                        Margin="0,2,0,0"
+                                                        Margin="2,0,0,0"
                                                         Click="RevealItemButton_Click" />
-                                                <Button Style="{StaticResource ItemActionButton}"
+                                                <Button x:Name="RemoveItemButton"
+                                                        Style="{StaticResource ItemActionButton}"
                                                         Content="&#xE74D;"
                                                         ToolTip="{Binding RemoveToolTip}"
-                                                        Margin="0,2,0,0"
+                                                        Margin="2,0,0,0"
                                                         Click="RemoveItemButton_Click" />
                                             </UniformGrid>
                                         </StackPanel>
@@ -446,7 +464,7 @@
                                         <Setter TargetName="BadgeText" Property="Foreground" Value="#FFFFFFFF" />
                                         <Setter TargetName="IconSurface" Property="Background" Value="#FFFFFFFF" />
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding Exists}" Value="False">
+                                                    <DataTrigger Binding="{Binding Exists}" Value="False">
                                         <Setter TargetName="ItemSurface" Property="Background" Value="#FFF0F0F0" />
                                         <Setter TargetName="ItemNameText" Property="Foreground" Value="#FF696969" />
                                         <Setter TargetName="ItemPathText" Property="Foreground" Value="#FF8A8A8A" />
@@ -463,6 +481,11 @@
                                         <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.78" />
                                         <Setter TargetName="IconSurface" Property="Opacity" Value="0.78" />
                                     </MultiDataTrigger>
+                                    <DataTrigger Binding="{Binding HasChangedPaths}" Value="True">
+                                        <Setter TargetName="ItemSurface" Property="Background" Value="#FFFFFAEE" />
+                                        <Setter TargetName="VersionTextBlock" Property="Foreground" Value="#FF9B5B00" />
+                                        <Setter TargetName="BadgeSurface" Property="Opacity" Value="0.78" />
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                         <Setter TargetName="ItemSurface" Property="Background" Value="#FFF7F7F7" />
                                         <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
@@ -476,20 +499,50 @@
                                         <Setter TargetName="ItemNameText" Property="Foreground" Value="#FFFFFFFF" />
                                         <Setter TargetName="ItemPathText" Property="Foreground" Value="#FFE5E5E5" />
                                         <Setter TargetName="MissingTextBlock" Property="Foreground" Value="#FFFFE2E0" />
+                                        <Setter TargetName="VersionTextBlock" Property="Foreground" Value="#FFFFE2E0" />
                                         <Setter TargetName="ActionPanel" Property="Opacity" Value="1" />
                                         <Setter TargetName="PinStatusText" Property="Visibility" Value="Collapsed" />
                                         <Setter TargetName="PinItemButton" Property="Background" Value="#26FFFFFF" />
                                         <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
+                                        <Setter TargetName="RevealItemButton" Property="Background" Value="#26FFFFFF" />
+                                        <Setter TargetName="RevealItemButton" Property="Foreground" Value="#FFFFFFFF" />
+                                        <Setter TargetName="RemoveItemButton" Property="Background" Value="#26FFFFFF" />
+                                        <Setter TargetName="RemoveItemButton" Property="Foreground" Value="#FFFFFFFF" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsPinned}" Value="True">
                                         <Setter TargetName="PinItemButton" Property="Content" Value="&#xE77A;" />
                                         <Setter TargetName="PinItemButton" Property="Background" Value="#FF141414" />
                                         <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
                                     </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsPinned}" Value="True" />
+                                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="PinItemButton" Property="Background" Value="#26FFFFFF" />
+                                        <Setter TargetName="PinItemButton" Property="Foreground" Value="#FFFFFFFF" />
+                                    </MultiDataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                         </ListBox>
+                        <Border x:Name="NoticeBar"
+                                Grid.Row="0"
+                                MinHeight="26"
+                                Margin="12,0,12,10"
+                                Padding="9,5"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Bottom"
+                                Background="#EE141414"
+                                CornerRadius="8"
+                                Visibility="Collapsed"
+                                IsHitTestVisible="False">
+                            <TextBlock x:Name="NoticeTextBlock"
+                                       FontSize="10"
+                                       Foreground="#FFFFFFFF"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                        </Border>
                         <Button x:Name="AddButton"
                                 Grid.Row="1"
                                 Width="48"
@@ -541,5 +594,19 @@
 
         </Grid>
     </Border>
+    <Canvas x:Name="DragHintLayer"
+            IsHitTestVisible="False">
+        <Border x:Name="DragHint"
+                MaxWidth="220"
+                Padding="8,5"
+                Background="#EE141414"
+                CornerRadius="8"
+                Visibility="Collapsed">
+            <TextBlock x:Name="DragHintTextBlock"
+                       FontSize="10"
+                       Foreground="#FFFFFFFF"
+                       TextWrapping="Wrap" />
+        </Border>
+    </Canvas>
     </Grid>
 </Window>

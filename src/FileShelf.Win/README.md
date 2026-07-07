@@ -56,4 +56,4 @@ dotnet build FileShelf.sln
 The portable publish script writes a clean app folder under
 `artifacts\FileShelf-portable-win-x64` and excludes runtime `FileShelfData` state.
 When `-Version` is omitted, it uses the project version from `Directory.Build.props`.
-Pass `-Version 0.4.0 -Repository lartpang/FileShelf` to stamp a specific About version and enable update checks from GitHub Releases.
+Pass `-Version 0.5.0 -Repository lartpang/FileShelf` to stamp a specific About version and enable update checks from GitHub Releases.
